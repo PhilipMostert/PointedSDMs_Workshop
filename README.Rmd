@@ -1,0 +1,27 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# *PointedSDMs* workshop material
+
+This page is dedicated for the material used in the *PointedSDMs* workshop. It contains all the presentations, vignettes and data required to run the analyses.
+
+To install the *R* package, please use the following script:
+
+```{r Install, eval=FALSE}
+install.packages('PointedSDMs')
+#or
+devtools::install_github('PhilipMostert/PointedSDMs')
+
+```
