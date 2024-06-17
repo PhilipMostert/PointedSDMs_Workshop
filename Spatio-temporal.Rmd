@@ -1,0 +1,107 @@
+---
+title: "Spatio-temporal"
+author: "Philip S. Mostert"
+date: "2024-06-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.width=8, 
+                      fig.height=5)
+```
+
+```{r Load packages}
+library(data.table)
+library(sf)
+library(dplyr) 
+library(tidyr)
+library(igraph)
+library(ggplot2)
+library(patchwork)
+library(lubridate)
+library(INLA)
+library(PointedSDMs)
+```
+
+```{r Proj}
+km_projection <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=km +no_defs"
+```
+
+```{r Choose time}
+yearBegin <- 2006 #2000
+yearEnd <- 2008 #2018
+```
+
+```{r Load ukbms}
+ukbms <- readRDS(file = 'Data/Vignette_temporal/ukbms.rds')
+```
+
+```{r Load bto}
+bto <- readRDS(file = 'Data/Vignette_temporal/bto.rds')
+```
+
+```{r Load GB}
+gb <- readRDS(file = 'Data/Vignette_temporal/gb.rds')
+```
+
+```{r Subset time}
+ukbms <- ukbms %>%
+  filter(Year >= yearBegin & Year <= yearEnd)
+
+bto <- bto %>%
+  filter(Year >= yearBegin & Year <= yearEnd)
+```
+
+```{r Mesh}
+mesh <- inla.mesh.2d(boundary = INLA::inla.sp2segment(gb), 
+                     max.edge = c(5,30) * 4,
+                     cutoff = 2,
+                     offset = 2,
+                     crs = km_projection)
+plot(mesh)
+```
+
+```{r startISDM}
+model_setup <- startISDM(ukbms, bto, 
+                         Projection = km_projection, Mesh = mesh,
+                         Boundary = gb, responsePA = 'Presence', 
+                         temporalName = 'Year')
+plot(model_setup)
+```
+
+```{r addBias}
+model_setup$addBias(datasetNames = 'bto')
+
+```
+
+```{r Priors}
+model_setup$specifySpatial(sharedSpatial = TRUE,
+                           prior.range = c(100, 0.01),
+                           prior.sigma = c(5, 0.01))
+
+model_setup$specifySpatial(Bias = TRUE,
+                           prior.range = c(100, 0.01),
+                           prior.sigma = c(5, 0.01))
+
+ar1_hyper <- list(model = 'ar1', hyper = list(theta1 = list(prior = "pc.prec", param = c(0.25, 0.01)),
+                                 rho = list(prior = "pc.cor1", param = c(0.8, 0.8))))
+
+model_setup$specifyRandom(temporalModel = ar1_hyper)
+```
+
+```{r fitISDM}
+TempModel <- fitISDM(model_setup, options = list(num.threads =2,
+                                  verbose = TRUE, 
+                                  control.inla = list(
+                                  int.strategy = 'eb',
+                                  strategy = "adaptive",
+                                  diagonal = 1)))
+summary(TempModel)
+```
+
+```{r Predict}
+pred <- predict(TempModel, mesh = mesh, 
+                mask = gb, predictor = TRUE)
+plot(pred)
+```
