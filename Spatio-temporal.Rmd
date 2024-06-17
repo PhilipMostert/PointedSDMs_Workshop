@@ -2,7 +2,8 @@
 title: "Spatio-temporal"
 author: "Philip S. Mostert"
 date: "2024-06-17"
-output: html_document
+output: pdf_document
+bibliography: References.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -11,27 +12,35 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.height=5)
 ```
 
+This vignette is dedicated to illustrating a spatio-temporal ISDM analysis using the *PointedSDMs R* package. The analysis presented here is loosely adapted from a similar analysis presented in [@seaton2024].
+
+We aim to estimate maps of log-intensity across time for *Pyronia tithonus* (common name: *Gatekeeper*) across England, Scotland and Wales. Two datasets are considered: the *UK butterfly monitoring scheme* (*ukbms*), which are collected at regularly surveyed transects across the UK. The data comes in the form of an abundance dataset, however for this analysis we treated them as detection/non-detection data. The other dataset considered came from the *British Trust for Ornithology plus partner organisations* (*bto*). These data are collected by citizen scientists, and we therefore treated them as presence only data.
+
+We load the packages required by the vignette:
+
 ```{r Load packages}
-library(data.table)
 library(sf)
 library(dplyr) 
 library(tidyr)
-library(igraph)
 library(ggplot2)
-library(patchwork)
-library(lubridate)
 library(INLA)
 library(PointedSDMs)
 ```
+
+And define a coordinate reference system to be used:
 
 ```{r Proj}
 km_projection <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=km +no_defs"
 ```
 
+The data used in this analysis contains information from the year 2000 all the way to the year 2018. Estimating a model with too many time periods may take a long time to estimate. Therefore the time periods considered may be filtered using the following script. Note that estimating a model with three time periods as chosen here may still take a long while to estimate.
+
 ```{r Choose time}
 yearBegin <- 2006 #2000
 yearEnd <- 2008 #2018
 ```
+
+We next load in the data used in the analysis, and a *sf* object for the study region, which has been simplified slightly in order to produce a better mesh:
 
 ```{r Load ukbms}
 ukbms <- readRDS(file = 'Data/Vignette_temporal/ukbms.rds')
@@ -45,6 +54,8 @@ bto <- readRDS(file = 'Data/Vignette_temporal/bto.rds')
 gb <- readRDS(file = 'Data/Vignette_temporal/gb.rds')
 ```
 
+We then subset the data based on the chosen years.
+
 ```{r Subset time}
 ukbms <- ukbms %>%
   filter(Year >= yearBegin & Year <= yearEnd)
@@ -52,6 +63,8 @@ ukbms <- ukbms %>%
 bto <- bto %>%
   filter(Year >= yearBegin & Year <= yearEnd)
 ```
+
+An *inla.mesh* object is created to estimate the spatial effect. We use a coarse mesh to speed up the run time of the models.
 
 ```{r Mesh}
 mesh <- inla.mesh.2d(boundary = INLA::inla.sp2segment(gb), 
@@ -62,6 +75,8 @@ mesh <- inla.mesh.2d(boundary = INLA::inla.sp2segment(gb),
 plot(mesh)
 ```
 
+We set up the model using the function `startISDM`, and specify the argument *temporalName* to set up a temporal analysis. The argument is the name of the column which contains information on the temporal variable, and is required to be standardized across datasets. We create a plot of the data to see how the data is spread across the map.
+
 ```{r startISDM}
 model_setup <- startISDM(ukbms, bto, 
                          Projection = km_projection, Mesh = mesh,
@@ -70,10 +85,14 @@ model_setup <- startISDM(ukbms, bto,
 plot(model_setup)
 ```
 
+A second spatial effect is added to the *bto* dataset to account for the spatial biases inherent in these data.
+
 ```{r addBias}
 model_setup$addBias(datasetNames = 'bto')
 
 ```
+
+Priors for the spatial effects and the hyperparameters of the model are then set.
 
 ```{r Priors}
 model_setup$specifySpatial(sharedSpatial = TRUE,
@@ -84,11 +103,15 @@ model_setup$specifySpatial(Bias = TRUE,
                            prior.range = c(100, 0.01),
                            prior.sigma = c(5, 0.01))
 
-ar1_hyper <- list(model = 'ar1', hyper = list(theta1 = list(prior = "pc.prec", param = c(0.25, 0.01)),
-                                 rho = list(prior = "pc.cor1", param = c(0.8, 0.8))))
+ar1_hyper <- list(model = 'ar1', hyper = list(theta1 = list(prior = "pc.prec", 
+                                                            param = c(0.25, 0.01)),
+                                 rho = list(prior = "pc.cor1", 
+                                            param = c(0.8, 0.8))))
 
 model_setup$specifyRandom(temporalModel = ar1_hyper)
 ```
+
+Estimation of the model may be completed `fitISDM`.
 
 ```{r fitISDM}
 TempModel <- fitISDM(model_setup, options = list(num.threads =2,
@@ -100,8 +123,18 @@ TempModel <- fitISDM(model_setup, options = list(num.threads =2,
 summary(TempModel)
 ```
 
+And finally we create temporal predictions of the model using `predict`,
+
 ```{r Predict}
 pred <- predict(TempModel, mesh = mesh, 
                 mask = gb, predictor = TRUE)
 plot(pred)
+```
+
+And temporal predictions of the bias component in a similar fashion.
+
+```{r Predict Bias}
+predBias <- predict(TempModel, mesh = mesh,
+                    mask = gb, bias = TRUE)
+plot(predBias)
 ```
