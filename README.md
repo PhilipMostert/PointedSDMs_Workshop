@@ -12,5 +12,5 @@ To install the *R* package, please use the following script:
 ``` r
 install.packages('PointedSDMs')
 #or
-devtools::install_github('PhilipMostert/PointedSDMs')
+devtools::install_github('PhilipMostert/PointedSDMs@main')
 ```
