@@ -1,10 +1,12 @@
 ---
-title: "Introduction to *PointedSDMs*"
-subtitle: 'ISEC 2024 -- Swansea'
+title: 'Presentation 2:'
+subtitle: "Introduction to *PointedSDMs*\n\n'ISEC 2024 -- Swansea'"
 author: 'Philip Mostert'
 institute: 'Norwegian University of Science and Technology'
 date: '13 July 2024'
 output: beamer_presentation
+bibliography:  "`r here::here('References.bib')`"
+biblio-style: authoryear
 header-includes:
   - \let\verbatim\undefined
   - \let\verbatimend\undefined
@@ -22,13 +24,15 @@ opts_chunk$set(tidy.opts=list(width.cutoff=20),tidy=TRUE)
 
 ## Introduction
 
--   Point 1
+-   Previous presentation introduced *ISDMs.*
 
--   Point 2
-
--   Point 3
+-   In this presentation we will present an *R* package to estimate these models.
 
 ## Introduction to integrated modelling
+
+-   Species distribution modelling has many applications in ecology and is now a mature discipline.
+-   Previously, the approach used was to favour one dataset, and either discard the other datasets or use them in secondary analyses.
+-   However integrated species distribution models (ISDMs) have emerged -- a method to model multiple datasets in a common statistical framework.
 
 ## Process model
 
@@ -59,6 +63,7 @@ The underlying process model is a log-Gaussian cox process (LGCP) with a spatial
 
 -   Package is designed to simplify the construction of ISDMs using a joint-likelihood framework.
 -   Wrapper around *R-INLA* and *inlabru* packages.
+-   Manuscript available in *Methods in Ecology and Evolution:* @mostert2023pointedsdms
 
 ## Installation of the package
 
@@ -71,6 +76,16 @@ devtools::install_github('PhilipMostert/PointedSDMs')
 ```
 
 ## Package structure
+
+-   Initalize model,
+
+-   Specify model,
+
+-   Estimate model,
+
+-   Predict and plot,
+
+-   Cross-validation.
 
 # Initializing model
 
@@ -157,7 +172,66 @@ args(blockedCV)
 args(datasetOut)
 ```
 
-## Quick example
+# Quick example
+
+## Introduction
+
+-   We will primarily use the *Setophaga* dataset throughout this workshop
+
+-   Contains information from three datasets:
+
+    -   *eBird*
+
+    -   *Pennsylvania Breeding Bird Atlas*
+
+    -   *North American Breeding Bird Survey*
+
+## `startISDM`
+
+```{r startISDM2, eval = FALSE}
+caerulescensModel <- startISDM(eBird, BBS, BBA, 
+                       Boundary = PA,
+                       Projection = proj, Mesh = mesh,
+                       responsePA = 'NPres', 
+                       responseCounts = 'Counts',
+                       spatialCovariates = covariates,
+              Formulas = list(
+          covariateFormula = ~ elevation + I(elevation^2) + canopy + I(canopy^2))
+                             )
+```
+
+## Specify Model
+
+```{r specifyModel, eval = FALSE}
+caerulescensModel$specifySpatial(sharedSpatial = TRUE,
+                           prior.sigma = c(1, 0.1),
+                           prior.range = c(15, 0.1))
+
+caerulescensModel$addBias(datasetNames = 'eBird')
+caerulescensModel$specifySpatial(Bias = TRUE, 
+                           prior.sigma = c(1, 0.1),
+                           prior.range = c(15, 0.1))
+
+caerulescensModel$priorsFixed(Effect = 'Intercept',
+                           mean.linear = 0, 
+                           prec.linear = 0.1)
+```
+
+## `fitISDM`, `predict` and `plot`
+
+```{r fitISDM2, eval = FALSE}
+caerulescensEst <- fitISDM(data = caerulescensModel, 
+                   options = modelOptions)
+
+caerulescensPredictions <- predict(caerulescensEst,
+                              data = fm_pixels(
+                                     mesh = mesh,
+                                     mask = PA),
+                              spatial = TRUE,
+                              n.samples = 1000)
+
+plot(caerulescensPredictions, variable = c('mean', 'sd'))
+```
 
 ## Next steps
 
@@ -166,3 +240,7 @@ args(datasetOut)
 -   Pull *Github* repository: *PhilipMostert/PointedSDMs_Workshop.*
 
 -   We will through *Vignette 1: Basic model* together.
+
+## References 
+
+\tiny
