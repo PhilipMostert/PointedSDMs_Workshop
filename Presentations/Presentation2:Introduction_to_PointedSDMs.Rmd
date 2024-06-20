@@ -1,0 +1,168 @@
+---
+title: "Introduction to *PointedSDMs*"
+subtitle: 'ISEC 2024 -- Swansea'
+author: 'Philip Mostert'
+institute: 'Norwegian University of Science and Technology'
+date: '13 July 2024'
+output: beamer_presentation
+header-includes:
+  - \let\verbatim\undefined
+  - \let\verbatimend\undefined
+  - \usepackage{listings}
+  - \lstnewenvironment{verbatim}{\lstset{breaklines=true,basicstyle=\ttfamily\footnotesize}}{}
+---
+
+```{r Load PointedSDMs, echo = FALSE, warning = FALSE, message = FALSE}
+
+library(knitr)
+library(PointedSDMs)
+opts_chunk$set(tidy.opts=list(width.cutoff=20),tidy=TRUE)
+
+```
+
+## Introduction
+
+-   Point 1
+
+-   Point 2
+
+-   Point 3
+
+## Introduction to integrated modelling
+
+## Process model
+
+\small
+
+The underlying process model is a log-Gaussian cox process (LGCP) with a spatially varying intensity function, $\lambda(s) = exp\{\eta(s)\}$, where: $$ \eta(s) = \alpha_0 + \sum_{k = 1}^p\beta_k X_k(s) + \zeta(s),$$ where:
+
+-   $\alpha_0$ is an intercept term,
+
+-   $\beta_k$ is the $k^{th}$ coefficient for the $k^{th}$ environmental covariate, which varies in space (denoted by the index, $s$),
+
+-   $\zeta(s)$ is a zero-mean Gaussian random field determined by a Matèrn covariance function.
+
+## Observation models
+
+\small
+
+-   Observation models are chosen based on the underlying sampling protocols of a given dataset.
+
+| Data type      | Distribution                     |
+|:---------------|:---------------------------------|
+| Present absent | Binomial (with a *cloglog link*) |
+| Present only   | Thinned Poisson                  |
+| Count data     | Poisson                          |
+| Marks/traits   | Variety                          |
+
+## *PointedSDMs* *R* package
+
+-   Package is designed to simplify the construction of ISDMs using a joint-likelihood framework.
+-   Wrapper around *R-INLA* and *inlabru* packages.
+
+## Installation of the package
+
+-   Install from either *CRAN* or *Github.*
+
+```{r install package, eval=FALSE}
+install.packages('PointedSDMs')
+#or
+devtools::install_github('PhilipMostert/PointedSDMs')
+```
+
+## Package structure
+
+# Initializing model
+
+## `startISDM`
+
+\small
+
+```{r startISDM}
+args(startISDM)
+```
+
+## `startSpecies`
+
+\small
+
+```{r startSpecies}
+args(startSpecies)
+```
+
+## `startMarks`
+
+\small
+
+```{r startMarks}
+args(startMarks)
+```
+
+# Specifying model
+
+## Available slot functions
+
+| Name                  | Use                                            |
+|-----------------------|------------------------------------------------|
+| `$plot()`             | Plot data                                      |
+| `$addBias()`          | Add second spatial effect                      |
+| `$updateFormula()`    | Update a likelihood's formula                  |
+| `$changeComponents()` | Update model components                        |
+| `$priorsFixed()`      | Specify priors for the fixed effects           |
+| `$specifySpatial()`   | Specify the spatial effects                    |
+| `$changeLink()`       | Change the link function of a process          |
+| `$spatialBlock()`     | Initiate spatial-block cross-validation        |
+| `$addSamplers()`      | Change the integration domain for a likelihood |
+| `$specifyRandom()`    | Specify the priors for other random effects    |
+
+## Information about slot functions
+
+-   Obtain documentation through the `.`\$`help()` function.
+
+\small
+
+```{r slot functions, eval = FALSE}
+obj <- startISDM(...)
+obj$help()
+```
+
+# Estimate the model
+
+## `fitISDM`
+
+```{r fitISDM}
+args(fitISDM)
+```
+
+# Post-estimation
+
+## Predict and plot
+
+```{r predict and plot, eval = FALSE}
+Predictions <- predict(model, ...)
+plot(Predictions)
+```
+
+# Model evaluation
+
+## Spatial block
+
+```{r spatBlock}
+args(blockedCV)
+```
+
+## Leave-one-out
+
+```{r LOO}
+args(datasetOut)
+```
+
+## Quick example
+
+## Next steps
+
+-   Questions and discussions.
+
+-   Pull *Github* repository: *PhilipMostert/PointedSDMs_Workshop.*
+
+-   We will through *Vignette 1: Basic model* together.
