@@ -1,0 +1,214 @@
+---
+title: "SetophagaExercise"
+author: "Bob O'Hara"
+date: "`r Sys.Date()`"
+bibliography: '`r system.file("References.bib", package="PointedSDMs")`'
+biblio-style: authoryear
+format: html
+---
+
+
+# Introduction
+
+This exercise is designede to help you set up your first integrated distribution model. By the end of it, you should know the steps you need to take to do this. We will cover some of the options and models later.
+
+As an example, we use five disparate datasets containing species *Setophaga* collected around Pennsylvania state (United States of America). 
+
+The first part of this file contains a brief introduction to the statistical model used in ISDMs, as well as an introduction to the included functions in the package. The second part of this file uses *PointedSDMs* to run the ISDM for the provided data. We note that, for this particular vignette, no inference was made due to computational intensity of the model. However the *R* script and data are provided below so that the user may carry out inference.
+
+```{r InstallPointedSDMs}
+#| warning = FALSE, 
+#| message = FALSE, 
+#| eval = TRUE
+##Install if need be
+library(PointedSDMs)
+
+```
+
+
+# The Data
+
+## *Setophaga* example
+
+This example aims to predict the distribution of three species of genus *setophaga* across Pennsylvania state. This example is notable in integrated modelling since it has been used by two seminal papers in the field, namely those by: @isaac2020data and @miller2019recent. This file extends the example by adding two additional datasets containing a further two species.
+
+
+We will start by modelling the Black-throated blue warbler, *Setophaga caerulescens*
+
+
+
+### Model preparations
+
+The first step in our analysis is to load in the packages required.
+
+```{r Load packages, message=FALSE, warning=FALSE}
+
+library(INLA)
+library(inlabru)
+# library(USAboundaries)
+library(sf)
+library(blockCV)
+library(ggmap)
+library(sn)
+library(terra)
+library(RColorBrewer)
+library(cowplot)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(spocc)
+
+```
+
+Finally, additional objects required by *PointedSDMs* and the *R-INLA* [@martins2013bayesian] and *inlabru* [@bachl2019inlabru] packages need to be assembled.
+
+We will use the following data:
+
+- a map of Pennsylvania
+- eBird: data for 3 species
+- BBS: North American breeding bird survey data
+- BBA: Pennsylvania Breeding Bird Atlas
+- elevation: Elevation. Height above sea level. Probably sea level at low tide nowadays.
+- canopy: canopy cover (a proxy for forest)
+
+eBirds, BBS and BBA are the biodiversity data. Elevation and canopy are covaraite, and we need the map to define our region (in practice, to construct our INLA mesh).
+
+|   **Dataset name**   |   Sampling protocol    | **Number of observations** | **Species name** |                                                                   **Source**                                                                   |
+|:----------:|:----------:|:----------:|:----------:|:------------------------:|
+|        *BBS*         |         Counts         |             45             |  *Caerulescens*  | [North American Breeding Bird Survey](https://www.pwrc.usgs.gov/bbs/){style="text-decoration: underline; color: rgb(252, 111, 9) !important;"} |
+|        *BBA*         | Detection/nondetection |            5165            |  *Caerulescens*  |  [Pennsylvania Breeding Bird Atlas](http://www.pabirdatlas.psu.edu/){style="text-decoration: underline; color: rgb(252, 111, 9) !important;"}  |
+| *eBird_caerulescens* |      Present only      |            264             |  *Caerulescens*  |                    [eBird](https://ebird.org/home){style="text-decoration: underline; color: rgb(252, 111, 9) !important;"}                    |
+|   *eBird_magnolia*   |      Present only      |            354             |    *Magnolia*    |                    [eBird](https://ebird.org/home){style="text-decoration: underline; color: rgb(252, 111, 9) !important;"}                    |
+|    *eBird_fusca*     |      Present only      |            217             |     *Fusca*      |                    [eBird](https://ebird.org/home){style="text-decoration: underline; color: rgb(252, 111, 9) !important;"}                    |
+: Table illustrating the different datasets used in the analysis.
+
+
+An *sf* object of Pennsylvania (obtained using the *USAboundaries* [@USABoundaries] package) is the first of these objects required, and it will be used to construct an *inla.mesh* object as well as help with the plotting of graphics. In order to create one of these polygons objects, we are first required to define the projection reference system.
+
+
+```{r Map of PA}
+# devtools::install_github("ropensci/USAboundaries")
+proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
+PA <- USAboundaries::us_states(states = "Pennsylvania")
+PA <- st_transform(PA, proj)
+
+
+```
+
+Next, we want our eBird data for all three species. Here we use the spocc package to download it. For this exercise we do not want to get into the details of how to download and format the data. Suffice to say these are sf objects.
+
+```{r, get_eBird}
+
+species <- c('caerulescens', 'fusca', 'magnolia')
+dataSets <- list()
+
+# read each species separately.
+for (bird in species) {
+  raw_data <- spocc::occ(
+    query = paste('Setophaga', bird),
+    from = "gbif",
+    date = c("2005-01-01", "2005-12-31"),
+    geometry = st_bbox(st_transform(PA,
+                                    '+proj=longlat +datum=WGS84 +no_defs')))$gbif
+  
+  rows <- grep("EBIRD", raw_data$data[[paste0('Setophaga_', bird)]]$collectionCode)
+  
+  raw_data <- data.frame(raw_data$data[[1]][rows, ])
+  raw_data$Species_name <- rep(bird, nrow(raw_data))
+  
+  data_sp <- st_as_sf(
+    x = raw_data[, names(raw_data) %in% c("longitude", "latitude", 'Species_name')],
+    coords = c('longitude', 'latitude'),
+    crs = '+proj=longlat +datum=WGS84 +no_defs')
+  data_sp <- st_transform(data_sp, proj)
+  
+  dataSets[[paste0('eBird_', bird)]] <- data_sp[unlist(st_intersects(PA, data_sp)),]
+  
+}
+```
+
+Next we download the BBS and BBA data. The BBS is a national breeding bird survey, the BBA was a state-wide effort to help build an atlas of breeding birds. These data are already in `PointedSDMs`, so we can simply add them to our data sets:
+
+
+```{r Load points}
+
+data('SetophagaData')
+dataSets[['BBA']] <- SetophagaData$BBA
+dataSets[['BBS']] <- SetophagaData$BBS
+
+```
+
+The BBA data sets presence/absence (or rather detection/non-detection). The BBS data are counts, but we convert these to detection/non-detection for simplicity. We can include counts, but leave that for another vignette.
+
+Finally we get our covariate data, again from the PointedSDMs package:
+
+```{r Covariate data, message = FALSE, warning = FALSE}
+
+covariates <- scale(terra::rast(system.file('extdata/SetophagaCovariates.tif', 
+                                      package = "PointedSDMs")))
+names(covariates) <- c('elevation', 'canopy')
+plot(covariates)
+
+```
+
+Now we have the data in several datasets. Next we need to integrate it into a common format that PointedSDMs can use.
+
+First, we use the PA map to create a mesh. We need the mesh because our model is a continuous surface. We approximate this with a tesselation of triangles. 
+
+```{r Mesh, warning = FALSE, message = FALSE, fig.width=8, fig.height=5}
+
+mesh <- inla.mesh.2d(boundary = inla.sp2segment(PA), 
+                     cutoff = 0.2 * 5,
+                     max.edge = c(0.1, 0.24) * 40, #120
+                     offset = c(0.1, 0.4) * 100,
+                     crs = st_crs(proj))
+
+mesh_plot <- ggplot() +
+             gg(mesh) +
+             ggtitle('Plot of mesh') +
+             theme_bw() +
+             theme(plot.title = element_text(hjust = 0.5))
+mesh_plot
+
+```
+
+Designing a good mesh is a dark art, that we are not sure anyone really understands. Fortunately Pennsylvania is a simple shape, so the mesh is not too complicated. Thanks to Slartibartfast's efforts, it is more difficult to get a good mesh for crinkly countries like Norway.
+
+Now we orgainise our species data. This uses the `startISDM()` function:
+
+```{r}
+#| eval: false
+caerulescensData <- dataSets[c(1,4,5)]
+
+caerulescensModel <- intModel(caerulescensData, # the data
+                              Coordinates = c("X", "Y"),
+                               Boundary = PA, # a polygo of the boundary
+                          Projection = proj, # the geographical projection
+                          Mesh = mesh, # the mesh, which we have just made
+                          responsePA = 'NPres', # Name of response for presence/absence data
+                          responseCounts = 'Counts', # Name of response for count data
+                          spatialCovariates = covariates, # Environmental covariates
+                          Formulas = # Formulae. 
+                          list(
+          covariateFormula = ~ elevation + I(elevation^2) + canopy + I(canopy^2))
+                             )
+```
+
+BUT THIS DOES NOT WORK!!! It says 
+
+Error in intModel(caerulescensData, Coordinates = c("X", "Y"), Boundary = PA,  : 
+  Datasets need to be either a SpatialPoints* object, sf or a data frame.
+
+
+
+
+The purpose of this is to package the data together, so that the data all line up with each other, and can be passed to INLAbru nicely. 
+
+Note that the response data are provided as a list (`caerulescensData`), and the covariate data in the `spatialCovariates` term: this data is used for the actual species distribution, so is used for all data sets. The response (count, presence/absence etc.) is `responsePA`, `responseCounts` etc. [HOW DO WE DEAL WITH PO DATA???] Here the formula includes quadratic terms for the covariates. In more complex problems we can have formulas for observation-level models.
+
+
+
+
+
+
+
