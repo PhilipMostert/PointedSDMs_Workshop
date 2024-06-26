@@ -16,14 +16,6 @@ As an example, we use five disparate datasets containing species *Setophaga* col
 
 The first part of this file contains a brief introduction to the statistical model used in ISDMs, as well as an introduction to the included functions in the package. The second part of this file uses *PointedSDMs* to run the ISDM for the provided data. We note that, for this particular vignette, no inference was made due to computational intensity of the model. However the *R* script and data are provided below so that the user may carry out inference.
 
-```{r InstallPointedSDMs}
-#| warning = FALSE, 
-#| message = FALSE, 
-#| eval = TRUE
-##Install if need be
-library(PointedSDMs)
-
-```
 
 
 # The Data
@@ -42,6 +34,10 @@ We will start by modelling the Black-throated blue warbler, *Setophaga caerulesc
 The first step in our analysis is to load in the packages required.
 
 ```{r Load packages, message=FALSE, warning=FALSE}
+
+##Install if need be: you will need v2.0
+# devtools::install_github(‘PhilipMostert/PointedSDMs@main’)
+library(PointedSDMs)
 
 library(INLA)
 library(inlabru)
@@ -87,11 +83,11 @@ An *sf* object of Pennsylvania (obtained using the *USAboundaries* [@USABoundari
 
 
 ```{r Map of PA}
+# if you need to download the package, you have to get it gtom GitHub
 # devtools::install_github("ropensci/USAboundaries")
 proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
 PA <- USAboundaries::us_states(states = "Pennsylvania")
 PA <- st_transform(PA, proj)
-
 
 ```
 
@@ -157,9 +153,14 @@ First, we use the PA map to create a mesh. We need the mesh because our model is
 
 ```{r Mesh, warning = FALSE, message = FALSE, fig.width=8, fig.height=5}
 
-mesh <- inla.mesh.2d(boundary = inla.sp2segment(PA), 
+meshBIG <- inla.mesh.2d(boundary = inla.sp2segment(PA), 
                      cutoff = 0.2 * 5,
                      max.edge = c(0.1, 0.24) * 40, #120
+                     offset = c(0.1, 0.4) * 100,
+                     crs = st_crs(proj))
+mesh <- inla.mesh.2d(boundary = inla.sp2segment(PA), 
+                     cutoff = 10 * 5,
+                     max.edge = c(1, 1.24) * 40, #120
                      offset = c(0.1, 0.4) * 100,
                      crs = st_crs(proj))
 
@@ -172,16 +173,15 @@ mesh_plot
 
 ```
 
-Designing a good mesh is a dark art, that we are not sure anyone really understands. Fortunately Pennsylvania is a simple shape, so the mesh is not too complicated. Thanks to Slartibartfast's efforts, it is more difficult to get a good mesh for crinkly countries like Norway.
+Designing a good mesh is a dark art, that we are not sure anyone really understands. Fortunately Pennsylvania is a simple shape, so the mesh is not too complicated. Thanks to Slartibartfast's efforts, it is more difficult to get a good mesh for crinkly countries like Norway. Our coarse mesh is OK, and has `r mesh$n` points in it. The full mesh has `r meshBIG$n` points, so is much larger, and thus the model fitting takes longer to run.
 
-Now we orgainise our species data. This uses the `startISDM()` function:
+Now we organise our species data. This uses the `startISDM()` function:
 
 ```{r}
-#| eval: false
+#| eval: true
 caerulescensData <- dataSets[c(1,4,5)]
 
-caerulescensModel <- intModel(caerulescensData, # the data
-                              Coordinates = c("X", "Y"),
+caerulescensModel <- startISDM(caerulescensData, # the data
                                Boundary = PA, # a polygo of the boundary
                           Projection = proj, # the geographical projection
                           Mesh = mesh, # the mesh, which we have just made
@@ -194,21 +194,202 @@ caerulescensModel <- intModel(caerulescensData, # the data
                              )
 ```
 
-BUT THIS DOES NOT WORK!!! It says 
-
-Error in intModel(caerulescensData, Coordinates = c("X", "Y"), Boundary = PA,  : 
-  Datasets need to be either a SpatialPoints* object, sf or a data frame.
-
-
-
 
 The purpose of this is to package the data together, so that the data all line up with each other, and can be passed to INLAbru nicely. 
 
 Note that the response data are provided as a list (`caerulescensData`), and the covariate data in the `spatialCovariates` term: this data is used for the actual species distribution, so is used for all data sets. The response (count, presence/absence etc.) is `responsePA`, `responseCounts` etc. [HOW DO WE DEAL WITH PO DATA???] Here the formula includes quadratic terms for the covariates. In more complex problems we can have formulas for observation-level models.
 
+If you need help with the object you create, you can get some here:
+
+```{r help}
+#| eval: false
+caerulescensModel$help()
+```
+
+(it is an R6 class, so the syntax is a bit different to what you might be used to)
+
+We can plot the data:
+
+```{r dataset plot, fig.width=8, fig.height=5}
+
+caerulescensModel$plot() +
+  theme_bw() +
+  ggtitle('Plot of the datasets') + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+So the BBA data are from the centre of Pennsylvania, and the other data are more spread out.
+
+Now we can fit the model:
+
+```{r fitISDM run}
+modelOptions <- list(control.inla = 
+                       list(int.strategy = 'eb',
+                            diagonal = 0.1), 
+                            verbose = FALSE,
+                            safe = TRUE)
+
+caerulescensEst <- fitISDM(data = caerulescensModel, 
+                   options = modelOptions)
+
+```
+
+This takes a few minutes. Once we have this, we can predict the distribution. Here we show the mean and standard deviation. 
+
+```{r predict and plot}
+
+caerulescensPredictions <- predict(caerulescensEst,
+                                   data = fm_pixels(mesh = mesh,
+                                                    mask = PA),
+                                   spatial = TRUE,
+                                   n.samples = 100) # n.samples=1e3 is better, but slower
+
+plot(caerulescensPredictions, variable = c('mean', 'sd'))
+
+
+```
+
+The blotchiness of the map, particularly the sd, is because of the coarse mesh. If you try it with `meshBIG` you get a nicer plot.
+
+We can also look at the parameter estimates. As this is the first model, we do not expect it to be brilliant.
+
+```{r Summary}
+summary(caerulescensEst)$fixed
+# summary(caerulescensEst)$hyperpar
+
+```
+
+# Improving the model
+
+We can improve the model in a few ways. 
+
+## Adding spatial terms
+
+We can add and modify spatial terms with `.$specifySpatial`. For example, if we want to change the spatial effect on the actual distribution (i.e. the residual spatial field), we can do it like this:
+
+
+```{r specifySpatial}
+
+caerulescensModel$specifySpatial(sharedSpatial = TRUE,
+                                 prior.sigma = c(1, 0.1),  # P(sigma > 1) = 0.1
+                                 prior.range = c(15, 0.1)) # P(range < 15) = 0.1
+
+```
+
+First, note that this changes the `caerulescensModel` object (so is different to classical R syntax). The `prior.sigma`and `prior.range` are parameters for a PC prior. We will sidestep what their details for now, but [good introductions are available](https://becarioprecario.bitbucket.io/inla-gitbook/ch-priors.html#sec:pcpriors). 
+
+
+## Spatial bias
+
+A well known problem with people is that they don't collect data according to well designed experimental protocols. With citizen science data, such as eBird, we want to correct for spatial biases in where people collect. We can add covaraites to model this bias, but here we will model the bias with a spatial field, something which seems to work surprisingly well [@simmonds2020more]. We can add it to the model like this:
+
+First we add a bias field, with `$addBias()`. We could fit the model at that point, but then we change the prior to a PC prior.
+
+```{r bias fields}
+#| eval: false
+
+caerulescensModel$addBias(datasetNames = 'eBird_caerulescens')
+
+caerulescensModel$specifySpatial(Bias = TRUE, 
+                                 prior.sigma = c(1, 0.1),
+                                 prior.range = c(15, 0.1))
+caerulescensEst <- fitISDM(data = caerulescensModel, 
+                   options = modelOptions)
+
+summary(caerulescensEst)$fixed
+summary(caerulescensEst)$hyper
+
+```
 
 
 
 
+### Priors for fixed effects:`.$priorsFixed`
+
+Suppose we knew *a priori* what the mean and precision values of one of the fixed terms for a given species was: we could add this knowledge to the model using the `.$priorsFixed` function.
+
+```{r priorsFixed}
+
+caerulescensModel$priorsFixed(Effect = 'Intercept',
+                              mean.linear = 0, 
+                              prec.linear = 0.1)
+caerulescensModel$priorsFixed(Effect = 'elevation',
+                              mean.linear = 5, 
+                              prec.linear = 10)
+
+caerulescensEstBAD <- fitISDM(data = caerulescensModel, 
+                   options = modelOptions)
+summary(caerulescensEstBAD)$fixed
+
+```
+
+# Your turn
+
+Now we can try the same analysis with a different species. These are the steps you need to take:
+
+1. download the species data
+1. download the covariate data
+1. make a mesh (you will ned a boundary)
+1. organise the data with `startISDM()`
+1. fit the model to the data with `fitISDM()`
+1. Plot the predictions
+
+We will help you with the first couple of steps: you can download the data like this:
+
+```{r Load data 2}
+
+data('SetophagaData')
+dataSets[['BBA']] <- SetophagaData$BBA
+dataSets[['BBS']] <- SetophagaData$BBS
+
+```
+
+We can plot it more easily when it has all been put together (see below).
+
+We already have the covariate data and the mesh:
+
+```{r Summ data}
+summary(covariates)
+summary(mesh)
+```
+
+
+So next you need to **organise the data**. If you want, you can change priors etc.
+
+```{r}
+#| eval: true
+#| code-fold: true
+#| code-summary: "Answer: How to organise the data"
+
+caerulescensData <- dataSets[c(1,4,5)]
+
+caerulescensModel <- startISDM(caerulescensData, # the data
+                               Boundary = PA, # a polygon of the boundary
+                          Projection = proj, # the geographical projection
+                          Mesh = mesh, # the mesh, which we have just made
+                          responsePA = 'NPres', # Name of response for presence/absence data
+                          responseCounts = 'Counts', # Name of response for count data
+                          spatialCovariates = covariates, # Environmental covariates
+                          Formulas = # Formulae. 
+                          list(
+          covariateFormula = ~ elevation + I(elevation^2) + canopy + I(canopy^2))
+                             )
+```
+
+```{r datasetplot, fig.width=8, fig.height=5}
+#| code-fold: true
+#| code-summary: "Can you plot the data?"
+
+caerulescensModel$plot() +
+  theme_bw() +
+  ggtitle('Plot of the datasets') + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+<details><summary><span style="color:blue">Hint</span></summary> </details>
+
+<details><summary><span style="color:red">Answer</span></summary> </details>
 
 
