@@ -251,8 +251,6 @@ mesh_plot
 
 ```
 
-Designing a good mesh is a dark art, that we are not sure anyone really understands. Fortunately Pennsylvania is a simple shape, so the mesh is not too complicated, but thanks to Slartibartfast's efforts, it is more difficult to gert a good meshcointrios like Norway are 
-
 We furthermore define model options which will be used for all runs in this vignette.
 
 ```{r modelOptions}
@@ -275,8 +273,7 @@ We may specify the formula for the covariate effects using the argument `Formula
 
 caerulescensData <- dataSets[c(1,4,5)]
 
-caerulescensModel <- intModel(caerulescensData, Boundary = PA,
-                              Coordinates = c("X", "Y"),
+caerulescensModel <- startISDM(caerulescensData, Boundary = PA,
                           Projection = proj, Mesh = mesh,
                           responsePA = 'NPres', responseCounts = 'Counts',
                           spatialCovariates = covariates,
