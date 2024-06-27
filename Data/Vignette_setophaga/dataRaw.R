@@ -75,7 +75,7 @@ BBS_Wren <- BBS_Wren %>% mutate(Counts = rowSums(dplyr::select(., starts_with("s
 BBS_Wren <- BBS_Wren %>% group_by(Route, AOU) %>%
   summarise(
     Year = Year,
-    NoPres = NPres,
+    NPres = NPres,
     Counts = sum(Counts)) %>%
   rename(Species_name = AOU)
 
