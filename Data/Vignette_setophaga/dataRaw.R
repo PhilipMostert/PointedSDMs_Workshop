@@ -94,4 +94,4 @@ BBS$Trials <- 50
 
 saveRDS(list(eBird = eBird,
              BBA = BBA, 
-             BBS = BBS), file = 'Data/SetophagaData.rds')
+             BBS = BBS), file = 'Data/Vignette_setophaga/SetophagaData.rds')
