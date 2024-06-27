@@ -65,7 +65,8 @@ stops <- unzip(BBS.file)
 BBS_Wren <- read.csv(unzip(stops[grep('Fifty8.zip', stops)]))  %>% 
   filter(AOU %in% c(06540, 06570, 06620), Year >= 2005, Year <= 2009, StateNum == 72) #06570 Mag #06620 Fus #06540 Cae
 
-BBS_Wren <- BBS_Wren %>% mutate(NPres = rowSums(dplyr::select(., starts_with("stop")))) %>%
+BBS_Wren <- BBS_Wren %>% mutate(Counts = rowSums(dplyr::select(., starts_with("stop"))),
+                                NPres = rowSums(dplyr::select(., starts_with("stop")) > 0)) %>%
   mutate(Ntrials = rowSums(!is.na(dplyr::select(., starts_with("stop"))))) %>%
   mutate(AOU = case_when(
     AOU == 06540 ~ 'Setophaga_caerulescens',
@@ -74,7 +75,7 @@ BBS_Wren <- BBS_Wren %>% mutate(NPres = rowSums(dplyr::select(., starts_with("st
 
 BBS_Wren <- BBS_Wren %>% group_by(Route, AOU) %>%
   summarise(
-    #Ntrials = sum(Ntrials),
+    NPres = NPres,
     Counts = sum(NPres)) %>%
   rename(Species_name = AOU)
 
@@ -88,6 +89,7 @@ BBS <- st_as_sf(x = BBS_Wren,
                 coords = c('Longitude', 'Latitude'),
                 crs = '+proj=longlat +datum=WGS84 +no_defs') %>%
   st_transform(., proj)
+BBS$Trials <- 50
   
 
 saveRDS(list(eBird = eBird,
