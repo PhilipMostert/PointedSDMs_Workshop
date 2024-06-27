@@ -7,8 +7,8 @@ PA <- st_transform(PA, proj)
 species <- c('Setophaga caerulescens', 'Setophaga magnolia', 'Setophaga fusca')
 eBird <- rgbif::occ_data(datasetKey = '4fa7b334-ce0d-4e88-aaae-2e0c138d049e',
                       geometry = st_bbox(st_transform(PA, crs = '+proj=longlat +datum=WGS84 +no_defs')),
-                      scientificName = species,
-                      limit = 5000)
+                      scientificName = species, year = '2005,2009',
+                      limit = 10000) #Time
 data_sp <- list()
 for (spec in species) {
 
@@ -90,6 +90,6 @@ BBS <- st_as_sf(x = BBS_Wren,
   st_transform(., proj)
   
 
-saveRDS(list(ebird = eBird,
+saveRDS(list(eBird = eBird,
              BBA = BBA, 
              BBS = BBS), file = 'Data/SetophagaData.rds')
