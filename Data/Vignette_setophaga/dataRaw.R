@@ -13,15 +13,15 @@ data_sp <- list()
 for (spec in species) {
 
   data_sp[[spec]] <- st_transform(st_as_sf(
-  x = eBird[[spec]]$data[, names(eBird[[spec]]$data) %in% c("decimalLatitude", "decimalLongitude", 'scientificName')],
+  x = eBird[[spec]]$data[, names(eBird[[spec]]$data) %in% c("decimalLatitude", "decimalLongitude", 'scientificName', 'year')],
   coords = c('decimalLongitude', 'decimalLatitude'),
   crs = '+proj=longlat +datum=WGS84 +no_defs'), proj)
-  
   data_sp[[spec]]$scientificName <- sub(' ', '_',spec)
 
 }
 eBird <- do.call(rbind, data_sp)
-eBird <- eBird %>% rename(Species_name = scientificName)
+eBird <- eBird %>% rename(Species_name = scientificName,
+                          Year = year)
 eBird <- eBird[unlist(st_intersects(PA, eBird)),]
 
 ##Download Data here
@@ -31,12 +31,12 @@ eBird <- eBird[unlist(st_intersects(PA, eBird)),]
 #PA_BirdAtlas_pointcount_location_and_conditions <- read.csv('PA_BirdAtlas_pointcount_location_and_conditions.csv')
 BBA <- PA_BirdAtlas_bird_counts %>% 
   filter(SP_code %in% c('BTBW', 'BLBW', 'MAWA')) %>%
-  #replace(is.na(.), 0) %>%
   mutate(total = dplyr::select(., c(3,5,7,9,11)) %>% rowSums(na.rm = TRUE)) %>%
   mutate(NPres = if_else(total == 0, 0, 1)) %>% 
   left_join(PA_BirdAtlas_pointcount_location_and_conditions) %>%
-  #filter(!grepl('/04',.$Date)) %>%
-  select('BBA_ID', 'SP_code', 'NPres', 'GPS_N', 'GPS_W') %>%
+  mutate(Year = as.numeric(format(as.Date(.$Date, "%m/%d/%Y"), '%Y')) + 2000) %>%
+  filter(Year >= 2005, Year <= 2009) %>%
+  select('BBA_ID', 'SP_code', 'NPres', 'GPS_N', 'GPS_W', 'Year') %>%
   mutate(SP_code = case_when(
     SP_code == "BTBW" ~ 'Setophaga_caerulescens',
     SP_code == 'BLBW' ~ 'Setophaga_fusca',
@@ -75,6 +75,7 @@ BBS_Wren <- BBS_Wren %>% mutate(Counts = rowSums(dplyr::select(., starts_with("s
 
 BBS_Wren <- BBS_Wren %>% group_by(Route, AOU) %>%
   summarise(
+    Year = Year,
     NPres = NPres,
     Counts = sum(NPres)) %>%
   rename(Species_name = AOU)
