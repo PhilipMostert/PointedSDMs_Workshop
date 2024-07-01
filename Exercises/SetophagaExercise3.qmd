@@ -1,0 +1,244 @@
+---
+title: "SetophagaExercise"
+author: "Ron R Togunov, Philip Mostert, Bob O'Hara"
+date: "`r Sys.Date()`"
+bibliography: '`r system.file("References.bib", package="PointedSDMs")`'
+biblio-style: authoryear
+format: html
+---
+
+# Introduction
+
+
+Multi-species intedrated SDM, by default, the range, standard deviation, and precision parameters are shared across species. If included in the model, the estimation/correction for sampling bias can be improved by including multiple species.
+
+
+This exercise is designed to let you set up your first integrated distribution model. By the end of it, you should know the steps you need to take to do this. Details will come later. As an example, we use three datasets containing three *Setophaga* species collected around Pennsylvania state (United States of America). We will walk through a model for one species, and then you can try it for another species.
+
+# *Setophaga* example
+
+This example aims to predict the distribution of three species of genus *setophaga* across Pennsylvania state. This example is notable in integrated modelling since it has been used by two seminal papers in the field, namely those by: @isaac2020data and @miller2019recent. This file extends the example by adding two additional datasets containing a further two species.
+
+We will start by modelling the Black-throated blue warbler, *Setophaga caerulescens*. We will use the following data:
+
+- a map of Pennsylvania
+- eBird: Citizen Science data
+- BBS: North American breeding bird survey data: we will use it as the number of stops where the species was seen (out of 50)
+- BBA: Pennsylvania Breeding Bird Atlas. Presence/Absence
+- elevation: Elevation. Height above sea level. Probably sea level at low tide nowadays.
+- canopy: canopy cover (a proxy for forest)
+
+
+## Model preparations
+
+
+The first step in our analysis is to load in the packages required.
+
+```{r Load packages, echo = F, warning = F, message = F}
+## Load required packages
+library(PointedSDMs) #devtools::install_github('PhilipMostert/PointedSDMs@main')
+library(INLA)
+library(inlabru)
+library(USAboundaries) # remotes::install_version("USAboundaries", version = "0.3.0", repos = "http://cran.us.r-project.org")
+library(sf)
+library(blockCV)
+library(ggmap)
+library(sn)
+library(terra)
+library(RColorBrewer)
+library(cowplot)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(spocc)
+library(here)
+```
+
+
+## Running the Model 
+
+Now we have our data, we need to organise it into a single object. This means we can do hing slike align the different data, e.g. so each data point has the right covariate data. The `startISDM()` function does this. This needs a few arguments, which we will discuss in more detail later.
+
+
+```{r Map of PA}
+## Define the projection system and create a polygon object for Pennsylvania
+proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
+PA <- USAboundaries::us_states(states = "Pennsylvania")
+PA <- st_transform(PA, proj)
+
+```
+
+Next, we want our data for all three species. We have already downloaded it for you. We reformat it slightly, so each species is in a separate list element. Later we will look at multi-species models.
+
+```{r GetData}
+## Load the species occurrence data
+SetohagaData <- readRDS(here("Data/Vignette_setophaga/SetophagaData.rds"))
+```
+
+Finally we get our covariate data, from the PointedSDMs package:
+
+```{r Covariate data}
+## Load covariate data
+covariates <- scale(terra::rast(system.file('extdata/SetophagaCovariates.tif', 
+                                            package = "PointedSDMs")))
+names(covariates) <- c('elevation', 'canopy')
+```
+
+Now we have the data in several datasets. Next we need to integrate it into a common format that PointedSDMs can use. First, we use the PA map to create a mesh. We need the mesh because our model is a continuous surface. We approximate this with a tesselation of triangles. The mesh here is too simple for a good analysis, but means that we can run the model quickly.
+
+```{r Mesh}
+#| warning: false
+#| message: false
+mesh <- inla.mesh.2d(boundary = inla.sp2segment(PA), 
+                     cutoff = 10 * 5,
+                     max.edge = c(1, 1.24) * 40, #120
+                     offset = c(0.05, 0.4) * 100,
+                     crs = st_crs(proj))
+```
+
+
+## Running the Model 
+
+Now we have our data, we need to organise it into a single object. This means we can do hing slike align the different data, e.g. so each data point has the right covariate data. The `startISDM()` function does this. This needs a few arguments, which we will discuss in more detail later.
+
+The next function of interest is `startSpecies`, which is used to construct a multi-species ISDM. The argument `speciesName` is required, and it denotes the name of the species variable common across the datasets. Additional arguments include: `speciesSpatial` to control the type of spatial effect used for the species, `speciesIntercept` to control the intercept for the species and `speciesEnvironment` to control the environmental effects for the species (common across species or shared).
+
+For this example, we use the default argument choices which include: a model with a spatial effect per species (with shared hyperparameters) and a random intercept term for the species. We remove the dataset specific spatial term for computational purposes by setting `pointsSpatial = NULL`.
+
+
+```{r startSpeciesStart}
+
+speciesModel <- startSpecies(SetohagaData, Boundary = PA, pointsSpatial = NULL,
+                             Projection = proj, Mesh = mesh,
+                             responsePA = 'NPres', 
+                             # responseCounts = 'Counts',
+                             trialsPA = 'Trials', # Name of no. of trials for binomial data
+                             
+                             spatialCovariates = covariates, 
+                             speciesName = 'Species_name')
+
+```
+
+The purpose of this is to package the data together, so that the data all line up with each other, and can be passed to INLAbru nicely. As a side product we can plot the data.
+
+```{r dataset plot}
+#| fig.width: 8 
+#| fig.height: 5
+speciesModel$plot() +
+  theme_bw() +
+  ggtitle('Plot of the species') + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+So the BBA data are from the centre of Pennsylvania, and the other data are more spread out.
+
+
+The output of this function is an *R6* object, and additional documentation from the function be be obtained using `?.$help()`.
+
+```{r species help, eval = FALSE}
+
+speciesModel$help()
+
+```
+
+
+###### Specifying the model
+
+Like the single-species model provided above, we specify the priors for the fixed and random effects using `.$specifySpatial` , `.$priorsFixed` and `.$specifyRandom`. In `.$specifyRandom`, the argument `speciesGroup` is used to change the prior for the precision (inverse variance) of group model for the spatial effects, and `speciesIntercepts` is used to change the prior for the precision for the random intercept term. For both of these parameters, we choose *pc priors.*
+
+Specify priors for spatial and random effects
+
+```{r specifySpecies}
+
+speciesModel$specifySpatial(Species  = TRUE,
+                            prior.sigma = c(1, 0.1),
+                            prior.range = c(15, 0.1))
+
+speciesModel$priorsFixed(Effect = 'Intercept',
+                         mean.linear = 0, 
+                         prec.linear = 0.1)
+
+speciesModel$specifyRandom(speciesGroup = list(model = "iid", 
+                                               hyper = list(prec = list(prior = "pc.prec",
+                                                                        param = c(0.1, 0.1)))),
+                           speciesIntercepts = list(prior = 'pc.prec',
+                                                    param = c(0.1, 0.1)))
+
+
+```
+
+###### Fitting, predicting and plotting
+
+Now we can fit the model:
+
+We may then estimate the model using `fitISDM`.
+
+```{r fitSpecies}
+modelOptions <- list(control.inla = list(int.strategy = 'eb', diagonal = 0.1), 
+                     verbose = FALSE, safe = TRUE)
+
+speciesEst <- fitISDM(data = speciesModel, 
+                      options = modelOptions)
+
+summary(speciesEst)
+
+```
+
+Predictions and plotting are completed as follows:
+
+```{r predictionsSpecies}
+
+speciesPredictions <- predict(speciesEst,
+                              data = fm_pixels(mesh = mesh,
+                                               mask = PA),
+                              spatial = TRUE,
+                              n.samples = 100)
+
+plot(speciesPredictions)
+
+```
+```{r predictionsSpecies}
+
+speciesPredictions2 <- predict(speciesEst,
+                              data = fm_pixels(mesh = mesh,
+                                               mask = PA),
+                              spatial = TRUE,
+                              covariates = speciesEst$spatCovs$name,
+                              n.samples = 100)
+plot(speciesPredictions2)
+
+```
+```{r predictionsSpecies}
+
+speciesPredictions3 <- predict(speciesEst,
+                              data = fm_pixels(mesh = mesh,
+                                               mask = PA),
+                              spatial = FALSE,
+                              covariates = speciesEst$spatCovs$name,
+                              n.samples = 100)
+plot(speciesPredictions3)
+
+```
+
+
+```{r}
+speciesPredictions %>% class
+speciesPredictions %>% length
+speciesPredictions %>% names
+speciesPredictions[[1]] %>% class
+speciesPredictions[[1]] %>% length
+speciesPredictions[[1]] %>% names
+speciesPredictions[[1]][[1]] %>% class
+speciesPredictions[[1]][[1]] %>% length
+speciesPredictions[[1]][[1]] %>% names
+speciesPredictions[[1]][[1]] %>% head
+
+```
+```{r}
+speciesEst$summary.fixed
+```
+
+
+
