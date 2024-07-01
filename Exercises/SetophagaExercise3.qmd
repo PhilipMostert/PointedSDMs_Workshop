@@ -9,30 +9,25 @@ format: html
 
 # Introduction
 
+Multi-species integrated SDM (iSDM), by default, shares the range, standard deviation, and precision parameters across species. Including multiple species in the model can improve the estimation and correction for sampling bias.
 
-Multi-species intedrated SDM, by default, the range, standard deviation, and precision parameters are shared across species. If included in the model, the estimation/correction for sampling bias can be improved by including multiple species.
+This exercise aims to set up your first integrated distribution model. By the end, you should know the steps to take to do this. We will use three datasets containing three *Setophaga* species collected around Pennsylvania state (USA). We will walk through a model for one species, and then you can try it for another species.
 
+# *Setophaga* Example
 
-This exercise is designed to let you set up your first integrated distribution model. By the end of it, you should know the steps you need to take to do this. Details will come later. As an example, we use three datasets containing three *Setophaga* species collected around Pennsylvania state (United States of America). We will walk through a model for one species, and then you can try it for another species.
+This example aims to predict the distribution of three *Setophaga* species across Pennsylvania state. It has been used in seminal papers by Isaac et al. (2020) and Miller et al. (2019). This file extends the example by adding datasets for two additional species.
 
-# *Setophaga* example
-
-This example aims to predict the distribution of three species of genus *setophaga* across Pennsylvania state. This example is notable in integrated modelling since it has been used by two seminal papers in the field, namely those by: @isaac2020data and @miller2019recent. This file extends the example by adding two additional datasets containing a further two species.
-
-We will start by modelling the Black-throated blue warbler, *Setophaga caerulescens*. We will use the following data:
-
-- a map of Pennsylvania
+We will start by modeling the Black-throated blue warbler, *Setophaga caerulescens*, using the following data:
+- A map of Pennsylvania
 - eBird: Citizen Science data
-- BBS: North American breeding bird survey data: we will use it as the number of stops where the species was seen (out of 50)
-- BBA: Pennsylvania Breeding Bird Atlas. Presence/Absence
-- elevation: Elevation. Height above sea level. Probably sea level at low tide nowadays.
-- canopy: canopy cover (a proxy for forest)
+- BBS: North American Breeding Bird Survey data
+- BBA: Pennsylvania Breeding Bird Atlas
+- Elevation: Height above sea level
+- Canopy: Canopy cover (a proxy for forest)
 
+## Model Preparations
 
-## Model preparations
-
-
-The first step in our analysis is to load in the packages required.
+The first step in our analysis is to load the required packages.
 
 ```{r Load packages, echo = F, warning = F, message = F}
 ## Load required packages
@@ -53,12 +48,9 @@ library(dplyr)
 library(spocc)
 library(here)
 ```
+## Data Preparation
 
-
-## Running the Model 
-
-Now we have our data, we need to organise it into a single object. This means we can do hing slike align the different data, e.g. so each data point has the right covariate data. The `startISDM()` function does this. This needs a few arguments, which we will discuss in more detail later.
-
+We need to organize the data into a single object to align the different data types. The `startISDM()` function does this.
 
 ```{r Map of PA}
 ## Define the projection system and create a polygon object for Pennsylvania
@@ -67,24 +59,19 @@ PA <- USAboundaries::us_states(states = "Pennsylvania")
 PA <- st_transform(PA, proj)
 
 ```
-
-Next, we want our data for all three species. We have already downloaded it for you. We reformat it slightly, so each species is in a separate list element. Later we will look at multi-species models.
+Next, we load the species occurrence data and covariate data:
 
 ```{r GetData}
 ## Load the species occurrence data
 SetohagaData <- readRDS(here("Data/Vignette_setophaga/SetophagaData.rds"))
-```
 
-Finally we get our covariate data, from the PointedSDMs package:
-
-```{r Covariate data}
 ## Load covariate data
 covariates <- scale(terra::rast(system.file('extdata/SetophagaCovariates.tif', 
                                             package = "PointedSDMs")))
 names(covariates) <- c('elevation', 'canopy')
 ```
 
-Now we have the data in several datasets. Next we need to integrate it into a common format that PointedSDMs can use. First, we use the PA map to create a mesh. We need the mesh because our model is a continuous surface. We approximate this with a tesselation of triangles. The mesh here is too simple for a good analysis, but means that we can run the model quickly.
+The mesh is crucial as our model is a continuous surface approximated with a tessellation of triangles.
 
 ```{r Mesh}
 #| warning: false
@@ -94,6 +81,105 @@ mesh <- inla.mesh.2d(boundary = inla.sp2segment(PA),
                      max.edge = c(1, 1.24) * 40, #120
                      offset = c(0.05, 0.4) * 100,
                      crs = st_crs(proj))
+```
+
+
+## Visualizing Covariate Interpolation
+
+We plot the interpolated elevation and canopy values to check how well the mesh reflects the covariates:
+
+```{r}
+library(geometry)
+library(Matrix)
+library(patchwork)
+library(tidyterra)
+
+# project covs to project proj
+covs <- project(aggregate(covariates,8,na.rm=TRUE), proj)  
+# Extract mesh vertices
+vertices <- as.data.frame(mesh$loc[, 1:2])
+colnames(vertices) <- c("x", "y")
+# Assuming your covariates are stored in a SpatRaster object named `covariates`
+elevation_values <- terra::extract(covs[["elevation"]], vertices)
+canopy_values <- terra::extract(covs[["canopy"]], vertices)
+
+# Combine the vertex coordinates with the extracted values
+vertices$elevation <- elevation_values[, 2]
+vertices$canopy <- canopy_values[, 2]
+# Convert vertices to an sf object
+vertices_sf <- st_as_sf(vertices, coords = c("x", "y"), crs = st_crs(covariates))
+
+# Get the triangles of the mesh
+triangles <- mesh$graph$tv
+
+
+# Create a grid of points over the study area for interpolation
+ext <- terra::ext(covs)
+centers <- expand.grid(seq(ext[1], ext[2],length.out= 200),seq(ext[3], ext[4],length.out= 100)) 
+names(centers) <- c('x','y')
+# Convert to data.frame
+centers_df <- as.data.frame(centers)
+# Convert to sf object
+study_area <- st_as_sf(centers_df, coords = c("x", "y"), crs = crs(covs)) %>% 
+  # remove points outside of shape
+  st_crop(PA)
+grid_points <- st_coordinates(study_area) 
+
+# replace NAs
+vertices$elevation[is.na(vertices$elevation)] <- 0
+vertices$canopy[is.na(vertices$canopy)] <- 0
+
+##2D barycentric interpolation at points Xi for a function with values f measured at locations X
+#For N-D interpolation simply replace tsearch with tsearchn and modify the sparse matrix definition to have non-zero values in the right spots.
+interp.barycentric <- function(X,f,Xi){
+  dn <- delaunayn(X)
+  tri <- tsearch(X[,1],X[,2],dn,Xi[,1],Xi[,2],bary=T)
+  #For each line in Xi, defines which points in X contribute to the interpolation
+  active <- dn[tri$idx,]
+  # Filter out NAs from tri$idx and active
+  valid_idx <- is.na(tri$idx)
+  active[valid_idx, ] <- 1
+  tri$p[valid_idx, ] <- 1
+  
+  # Define the interpolation as a sparse matrix operation
+  M <- sparseMatrix(i = rep(1:nrow(Xi), each = 3), j = as.numeric(t(active)), x = as.numeric(t(tri$p)), dims = c(nrow(Xi), length(f)))
+  as.numeric(M %*% f)
+}
+
+# Interpolate elevation values
+interpolated_elevation <- interp.barycentric(as.matrix(vertices[, c("x", "y")]), vertices$elevation, grid_points)
+
+# Interpolate canopy values
+interpolated_canopy <- interp.barycentric(as.matrix(vertices[, c("x", "y")]), vertices$canopy, grid_points)
+
+# Combine the interpolated points with the values
+interpolated_df <- data.frame(
+  x = grid_points[, 1],
+  y = grid_points[, 2],
+  elevation = interpolated_elevation,
+  canopy = interpolated_canopy
+)
+
+# Convert to sf object
+interpolated_sf <- st_as_sf(interpolated_df, coords = c("x", "y"), crs = st_crs(covariates))
+
+
+# Plot interpolated elevation with regular tiles
+p1 <- ggplot(interpolated_df) +
+  geom_tile(aes(x = x, y = y, fill = elevation)) +
+  labs(title = "Interpolated Elevation", fill = "Elevation")
+p1b <- ggplot() + geom_spatraster(data = covs$elevation)
+# Plot interpolated canopy with regular tiles
+p2 <- ggplot(interpolated_df) +
+  geom_tile(aes(x = x, y = y, fill = canopy)) +
+  labs(title = "Interpolated Canopy", fill = "Canopy")
+p2b <- ggplot() + geom_spatraster(data = covs$canopy)
+
+# Display plots side by side
+p1b + p1 + 
+  p2b + p2 & 
+  scale_fill_viridis_c() 
+
 ```
 
 
@@ -163,13 +249,13 @@ speciesModel$priorsFixed(Effect = 'Intercept',
 speciesModel$specifyRandom(speciesGroup = list(model = "iid", 
                                                hyper = list(prec = list(prior = "pc.prec",
                                                                         param = c(0.1, 0.1)))),
-                           speciesIntercepts = list(prior = 'pc.prec',
+                                                      speciesIntercepts = list(prior = 'pc.prec',
                                                     param = c(0.1, 0.1)))
+
 
 
 ```
 
-###### Fitting, predicting and plotting
 
 Now we can fit the model:
 
@@ -181,6 +267,14 @@ modelOptions <- list(control.inla = list(int.strategy = 'eb', diagonal = 0.1),
 
 speciesEst <- fitISDM(data = speciesModel, 
                       options = modelOptions)
+
+
+```
+
+###### Predicting and plotting
+
+
+```{r}
 
 summary(speciesEst)
 
@@ -199,25 +293,27 @@ speciesPredictions <- predict(speciesEst,
 plot(speciesPredictions)
 
 ```
-```{r predictionsSpecies}
+
+```{r predictionsSpecies2}
 
 speciesPredictions2 <- predict(speciesEst,
-                              data = fm_pixels(mesh = mesh,
-                                               mask = PA),
-                              spatial = TRUE,
-                              covariates = speciesEst$spatCovs$name,
-                              n.samples = 100)
+                               data = fm_pixels(mesh = mesh,
+                                                mask = PA),
+                               spatial = TRUE,
+                               covariates = speciesEst$spatCovs$name,
+                               n.samples = 100)
 plot(speciesPredictions2)
 
 ```
-```{r predictionsSpecies}
+
+```{r predictionsSpecies3}
 
 speciesPredictions3 <- predict(speciesEst,
-                              data = fm_pixels(mesh = mesh,
-                                               mask = PA),
-                              spatial = FALSE,
-                              covariates = speciesEst$spatCovs$name,
-                              n.samples = 100)
+                               data = fm_pixels(mesh = mesh,
+                                                mask = PA),
+                               spatial = FALSE,
+                               covariates = speciesEst$spatCovs$name,
+                               n.samples = 100)
 plot(speciesPredictions3)
 
 ```
@@ -236,6 +332,7 @@ speciesPredictions[[1]][[1]] %>% names
 speciesPredictions[[1]][[1]] %>% head
 
 ```
+
 ```{r}
 speciesEst$summary.fixed
 ```
