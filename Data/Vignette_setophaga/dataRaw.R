@@ -1,6 +1,5 @@
 library(sf)
 library(dplyr)
-library(rdryad)
 proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
 PA <- USAboundaries::us_states(states = "Pennsylvania")
 PA <- st_transform(PA, proj)
@@ -77,7 +76,7 @@ BBS_Wren <- BBS_Wren %>% group_by(Route, AOU) %>%
   summarise(
     Year = Year,
     NPres = NPres,
-    Counts = sum(NPres)) %>%
+    Counts = sum(Counts)) %>%
   rename(Species_name = AOU)
 
 routes_in <- intersect(BBS_Wren$Route, routes$Route)
