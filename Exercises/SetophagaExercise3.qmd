@@ -194,18 +194,27 @@ For this example, we use the default argument choices which include: a model wit
 
 ```{r startSpeciesStart}
 
-speciesModel <- startSpecies(SetohagaData, Boundary = PA, pointsSpatial = NULL,
+speciesModel <- startSpecies(SetohagaData, Boundary = PA, 
                              Projection = proj, Mesh = mesh,
                              responsePA = 'NPres', 
                              # responseCounts = 'Counts',
                              trialsPA = 'Trials', # Name of no. of trials for binomial data
-                             
+                             speciesSpatial = "replicate",  # unique spatial field per species 
+                             pointsSpatial = NULL,  # no dataset spatial field
                              spatialCovariates = covariates, 
                              speciesName = 'Species_name')
 
 ```
 
-The purpose of this is to package the data together, so that the data all line up with each other, and can be passed to INLAbru nicely. As a side product we can plot the data.
+Again, the output of this function is an *R6* object, and additional documentation from the function be be obtained using `?.$help()`.
+
+```{r species help, eval = FALSE}
+
+speciesModel$help()
+
+```
+
+Plotting the multi-species model, shows the distribution by species rather than by dataset as in the previous vignette.
 
 ```{r dataset plot}
 #| fig.width: 8 
@@ -214,21 +223,7 @@ speciesModel$plot() +
   theme_bw() +
   ggtitle('Plot of the species') + 
   theme(plot.title = element_text(hjust = 0.5))
-
 ```
-
-
-So the BBA data are from the centre of Pennsylvania, and the other data are more spread out.
-
-
-The output of this function is an *R6* object, and additional documentation from the function be be obtained using `?.$help()`.
-
-```{r species help, eval = FALSE}
-
-speciesModel$help()
-
-```
-
 
 ###### Specifying the model
 
@@ -237,22 +232,25 @@ Like the single-species model provided above, we specify the priors for the fixe
 Specify priors for spatial and random effects
 
 ```{r specifySpecies}
+# hyper parameters of the spatial field (shared across species)
+speciesModel$specifySpatial(Species = TRUE,  # define same prior for the all species
+                            prior.sigma = c(1, 0.1),  # SD of field variation; P(σ > σ0)
+                            prior.range = c(15, 0.1))  # range of spatial correlation; P(ρ < ρ0)
 
-speciesModel$specifySpatial(Species  = TRUE,
-                            prior.sigma = c(1, 0.1),
-                            prior.range = c(15, 0.1))
-
+# prior for intercept of datasets (common for all datasets and all species in the model)
 speciesModel$priorsFixed(Effect = 'Intercept',
                          mean.linear = 0, 
                          prec.linear = 0.1)
 
-speciesModel$specifyRandom(speciesGroup = list(model = "iid", 
-                                               hyper = list(prec = list(prior = "pc.prec",
-                                                                        param = c(0.1, 0.1)))),
-                                                      speciesIntercepts = list(prior = 'pc.prec',
-                                                    param = c(0.1, 0.1)))
-
-
+# prior for random effects (mesh nodes of spatial field and species intercepts)
+speciesModel$specifyRandom(
+  # precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)
+  speciesGroup = list(model = "iid", 
+                      hyper = list(prec = list(prior = "pc.prec",
+                                               param = c(0.1, 0.1)))),  # P(σ > σ0)
+  # precision parameter on the baseline species occurrence rate
+  speciesIntercepts = list(prior = 'pc.prec',
+                           param = c(0.1, 0.1)))  # P(σ > σ0)
 
 ```
 
