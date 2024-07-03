@@ -31,8 +31,6 @@ library(INLA)
  library(ggmap)
 library(terra)
 
-
-
 ```
 
 
@@ -247,7 +245,7 @@ A well known problem with people is that they don't collect data according to we
 First we add a bias field, with `$addBias()`. We could fit the model at that point, but then we change the prior to a PC prior.
 
 ```{r bias fields}
-#| eval: false
+#| eval: true
 caerulescensModel$help() # use this to see what data sets are available, and what their names are
 
 caerulescensModel$addBias(datasetNames = 'ebird')
@@ -260,7 +258,6 @@ caerulescensModel$specifySpatial(Bias = TRUE, # Change the prior
 caerulescensEst <- fitISDM(data = caerulescensModel, 
                     options = modelOptions)
 
-summary(caerulescensEst)$fixed
 summary(caerulescensEst)$hyper
 
 ```
@@ -297,7 +294,7 @@ This model might seem slightly strange: we have elevation as a process model, bu
 
 ```{r spatialBlock, warning = FALSE, message = FALSE,  fig.width=8, fig.height=5}
 
-caerulescensModel$spatialBlock(k = 2, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+caerulescensModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
 
 ```
 
@@ -372,63 +369,128 @@ Now we can try the same analysis with a different species. These are the steps y
 1. fit the model to the data with `fitISDM()`
 1. Plot the predictions
 
-We will help you with the first couple of steps: you can download the data like this:
+We will help you with the first couple of steps. Here is the first model for the magnolia
 
 ```{r Load data 2}
-#| eval: false
+#| eval: true
 
-data('SetophagaData')
-dataSets[['BBA']] <- SetophagaData$BBA
-dataSets[['BBS']] <- SetophagaData$BBS
+magnoliaData <- SetohagaData$Setophaga_magnolia
 
-```
-
-We can plot it more easily when it has all been put together (see below).
-
-We already have the covariate data and the mesh:
-
-```{r Summ data}
-#| eval: false
-summary(covariates)
-summary(mesh)
-```
-
-
-So next you need to **organise the data**. If you want, you can change priors etc.
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "Answer: How to organise the data"
-
-caerulescensData <- dataSets[c(1,4,5)]
-
-caerulescensModel <- startISDM(caerulescensData, # the data
+magnoliaModel <- startISDM(SetohagaData$Setophaga_magnolia, # the data
                                Boundary = PA, # a polygon of the boundary
-                          Projection = proj, # the geographical projection
-                          Mesh = mesh, # the mesh, which we have just made
-                          responsePA = 'NPres', # Name of response for presence/absence data
-                          responseCounts = 'Counts', # Name of response for count data
-                          spatialCovariates = covariates, # Environmental covariates
-                          Formulas = # Formulae. 
-                          list(
-          covariateFormula = ~ elevation + I(elevation^2) + canopy + I(canopy^2))
-                             )
+                               Projection = proj, # the geographical projection
+                               Mesh = mesh, # the mesh, which we have just made
+                               responsePA = 'NPres', # Name of response for binomial data
+                               trialsPA = 'Trials', # Name of no. of trials for binomial data
+                               spatialCovariates = covariates # Environmental covariates
+)
+
+magnoliaEst <- fitISDM(data = magnoliaModel, options = modelOptions)
+
+# we will use this soon
+magnoliaModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+
+
 ```
 
-```{r datasetplot}
+
+```{r Load data 3}
+#| eval: true
 #| code-fold: true
-#| eval: false
-#| code-summary: "Can you plot the data?"
-#| fig.width: 8
-#| fig.height: 5
+#| code-summary: If you want to see the code for S. fusca, it is here.
+#| collapse: true
 
-caerulescensModel$plot() +
-  theme_bw() +
-  ggtitle('Plot of the datasets') + 
-  theme(plot.title = element_text(hjust = 0.5))
+fuscaData <- SetohagaData$Setophaga_fusca
+
+fuscaModel <- startISDM(SetohagaData$Setophaga_fusca, # the data
+                               Boundary = PA, # a polygon of the boundary
+                               Projection = proj, # the geographical projection
+                               Mesh = mesh, # the mesh, which we have just made
+                               responsePA = 'NPres', # Name of response for binomial data
+                               trialsPA = 'Trials', # Name of no. of trials for binomial data
+                               spatialCovariates = covariates # Environmental covariates
+)
+
+fuscaEst <- fitISDM(data = fuscaModel, options = modelOptions)
+
+# we will use this soon
+fuscaModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+
 
 ```
+
+
+
+1. are quadratic effects worth adding?
+
+```{r FormulaProcessmagnolia}
+#| eval: false
+#| code-fold: true
+#| code-summary: Well, are they?
+#| collapse: true
+
+magnoliaModel$updateFormula(???, 
+                              Formula = . ~ . + I(elevation^2))
+
+magnoliaEst <- fitISDM(data = caerulescensModel, 
+                   options = modelOptions)
+summary(magnoliaEst)$fixed
+
+```
+
+
+2. Should we add a bias field?
+
+
+
+```{r BiasMagnolia}
+#| code-fold: true
+#| code-summary: Here is the code for the Magnolia analysis
+#| collapse: true
+# first do the block CV on the original model
+magnoliaBlocked <- blockedCV(data = magnoliaModel, options = modelOptions)
+
+# now add the spatial bias term
+magnoliaModel$help() # use this to see what data sets are available, and what their names are
+magnoliaModel$addBias(datasetNames = 'ebird')
+magnoliaModel$specifySpatial(Bias = TRUE, # Change the prior
+                                 prior.sigma = c(0.1, 0.1),
+                                 prior.range = c(15, 0.1))
+magnoliaEstBias <- fitISDM(data = magnoliaModel, 
+                    options = modelOptions)
+
+magnoliaBlockedBias <- blockedCV(data = magnoliaModel, options = modelOptions)
+
+magnoliaBlocked
+magnoliaBlockedBias
+
+```
+
+
+```{r BiasFusca}
+#| code-fold: true
+#| code-summary: Here is the code for the fusca analysis
+#| collapse: true
+# first do the block CV on the original model
+fuscaBlocked <- blockedCV(data = fuscaModel, options = modelOptions)
+
+# now add the spatial bias term
+fuscaModel$help() # use this to see what data sets are available, and what their names are
+fuscaModel$addBias(datasetNames = 'ebird')
+fuscaModel$specifySpatial(Bias = TRUE, # Change the prior
+                                 prior.sigma = c(0.1, 0.1),
+                                 prior.range = c(15, 0.1))
+fuscaEstBias <- fitISDM(data = fuscaModel, 
+                    options = modelOptions)
+
+fuscaBlockedBias <- blockedCV(data = fuscaModel, options = modelOptions)
+
+fuscaBlocked
+fuscaBlockedBias
+
+```
+
+
 
 <details><summary><span style="color:blue">Hint</span></summary> </details>
 
