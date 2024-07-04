@@ -1,0 +1,99 @@
+---
+title: "Intro_to_ISDMs"
+author: "Bob O'Hara"
+institute: 'Norwegian University of Science and Technology'
+date: '13 July 2024'
+format: revealjs
+---
+
+## Who We Are
+
+:::: {.columns}
+
+::: {.column width="25%"}
+Bob O'Hara
+:::
+
+::: {.column width="25%"}
+Philip Mostert
+:::
+
+::: {.column width="25%"}
+Kwaku Adjei
+:::
+
+::: {.column width="25%"}
+Ron Togonov
+:::
+
+::::
+
+# Why Integrate Data?
+
+## Data are messy
+
+![GBIF data](LepsNA.gif)
+
+
+## Data are messy
+
+![Johan trap](JohanTrap.JPG)
+
+
+## Merge data
+
+....
+
+# The Model Framework
+
+## The Pieces
+
+- $P(Y_d|\lambda(s))$:  One observation model per data set
+- $P(\lambda(s))$ One process model
+
+Full likelihood
+
+$$
+P(\lambda({\bf{s}})) \prod_{d=1}^D P(Y_d|\lambda(\bf{s}))
+$$
+
+## Point Processes
+
+Point processes are defined on a continuous space
+
+- intensity $\lambda({\bf s})$
+
+For an area $A$, mean number of points in area is 
+
+$$
+\mu_A = \int_A \lambda({\bf s}) d{\bf s}
+$$
+
+Actual number follows a Poisson distributiuon with mean $\mu_A$
+
+## Observation processes
+
+- Counts: $N_A \sim Poisson(p \mu_A)$
+- Presence/Absence: $(N_A >0) \sim Bern( 1-e^{-p \mu_A})$ (=cloglog)
+- Points: Thinned point process 
+
+# Why have a package?
+
+- not easy to code from scratch
+- lots of pieces that are the same between models
+- models are modular, so a package can help piece them together
+
+# What we will do today
+
+- Exercise 1: your first model with `PointedSDMs`
+- Presentation 2: What you just did (and why)
+- Exercise 2: A bit more modelling: how to change the model
+- Presentation 3: Multi-species models
+- Exercise 3: Multi-species models
+- Discussion and wrapping up
+
+
+# Exercise 1: Your first (and second?) model
+
+
+
