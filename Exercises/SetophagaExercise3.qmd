@@ -298,9 +298,9 @@ $$
 
 We can share information in 3 ways:
 
-- share everything: $\varepsilon_i(\bf{s}) = \varepsilon(\bf{s})$. Same random field across all species
-- share hyper-parameters: $\sigma_i^2 = \sigma^2$. Different random field, but shared hyperparameters
-- share nothing: $\varepsilon_i(\bf{s})$ and $\sigma_i^2$ all different
+- **share** share everything: $\varepsilon_i(\bf{s}) = \varepsilon(\bf{s})$. Same random field across all species
+- **replicate** share hyper-parameters: $\sigma_i^2 = \sigma^2$. Different random field, but shared hyperparameters
+- **copy** share nothing: $\varepsilon_i(\bf{s})$ and $\sigma_i^2$ all different
 
 
 ## Shared species model
