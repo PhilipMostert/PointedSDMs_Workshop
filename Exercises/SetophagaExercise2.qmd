@@ -256,7 +256,7 @@ summary(caerulescensEst)$hyper
 
 ```
 
-If we want to model the observation process for a data set, we can do that by changing the formula for the dataset. For example, we might think that birders in Pennsylvania don't like heights (if they did, they would be in Colorado, after all), and add elevation as a covariate:
+If we want to model the observation process for a data set, we can do that by changing the formula for the dataset. For example, we might think that birders in Pennsylvania don't like heights (if they did, they would be in Colorado, after all), and add elevation as a covariate. We also need to add the corresponding component using `.$addComponents` to ensure that it gets estimated.
 
 ```{r AddEbirdCovariate}
 #| eval: true
