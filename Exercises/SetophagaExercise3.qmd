@@ -1,0 +1,562 @@
+---
+title: "Multi-Species Integrated Species Distribution Modeling Workshop"
+author: "Ron R Togunov, Philip Mostert, Bob O'Hara"
+date: "`r Sys.Date()`"
+bibliography: '`r system.file("References.bib", package="PointedSDMs")`'
+biblio-style: authoryear
+format: html
+---
+
+# Introduction
+
+Multi-species integrated Species Distribution Models (iSDMs) offer powerful tools for ecological analysis. These models allow us to simultaneously analyze multiple species, potentially improving our understanding of species distributions and the factors that influence them. By default, these models share range, standard deviation, and precision parameters across species, which can lead to more robust estimates, especially for rare species or those with limited data. Additionally, this approach can help in correcting for sampling bias, a common issue in ecological data collection.
+
+This workshop aims to guide you through the process of setting up and interpreting multi-species iSDMs using the `PointedSDMs` package. We'll explore various modeling approaches and discuss their ecological implications.
+
+# *Setophaga* Example
+In this workshop, we'll focus on predicting the distribution of three *Setophaga* warbler species across Pennsylvania, USA. These species are:
+
+- *Setophaga fusca* (Blackburnian Warbler)
+- *Setophaga caerulescens* (Black-throated Blue Warbler)
+- *Setophaga magnolia* (Magnolia Warbler)
+
+We'll use data from three different sources, each with its own strengths and potential biases:
+
+- eBird: A citizen science project, providing extensive data but potentially biased towards accessible areas and popular birding spots.
+- North American Breeding Bird Survey (BBS): A standardized survey, providing consistent sampling but limited in spatial coverage.
+- Pennsylvania Breeding Bird Atlas (BBA): A comprehensive survey, but conducted over a longer time period.
+
+We'll also incorporate environmental covariates to help explain species distributions:
+
+- Elevation: Which can influence temperature, precipitation, and vegetation types.
+- Canopy cover: As a proxy for forest habitat, which is important for these woodland warblers.
+- Coniferous forest cover: 
+
+By combining these diverse data sources and environmental information, we aim to create a comprehensive model of warbler distributions in Pennsylvania.
+
+## Model Preparations
+
+First, let's load the required packages and prepare our data:
+
+```{r Load packages, echo = F, warning = F, message = F}
+## Load required packages
+library(PointedSDMs) # devtools::install_github('PhilipMostert/PointedSDMs@main')
+library(INLA)
+library(inlabru)
+library(USAboundaries) # remotes::install_version("USAboundaries", version = "0.3.0", repos = "http://cran.us.r-project.org")
+library(sf)
+library(blockCV)
+library(ggmap)
+library(sn)
+library(terra)
+library(RColorBrewer)
+library(cowplot)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(spocc)
+library(here)
+library(patchwork)
+
+# Load and prepare data
+proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
+PA <- USAboundaries::us_states(states = "Pennsylvania") %>% st_transform(proj)
+SetophagaData <- readRDS(here("Data/Vignette_setophaga/SetophagaData.rds"))
+covariates <- scale(terra::rast(system.file('extdata/SetophagaCovariates.tif', package = "PointedSDMs")))
+names(covariates) <- c('elevation', 'canopy')
+
+# Create mesh
+mesh <- inla.mesh.2d(boundary = inla.sp2segment(PA), 
+                     cutoff = 10 * 5,
+                     max.edge = c(1, 1.24) * 40,
+                     offset = c(0.05, 0.4) * 100,
+                     crs = st_crs(proj))
+```
+## Visualizing Covariate Interpolation
+
+Before we build our models, it's crucial to understand how our environmental covariates are represented across the study area. The following code creates visualizations of our elevation and canopy cover data:
+
+```{r}
+library(geometry)
+library(Matrix)
+library(patchwork)
+library(tidyterra)
+
+# project covs to project proj
+covs <- project(aggregate(covariates,8,na.rm=TRUE), proj)  
+# Extract mesh vertices
+vertices <- as.data.frame(mesh$loc[, 1:2])
+colnames(vertices) <- c("x", "y")
+# Assuming your covariates are stored in a SpatRaster object named `covariates`
+elevation_values <- terra::extract(covs[["elevation"]], vertices)
+canopy_values <- terra::extract(covs[["canopy"]], vertices)
+
+# Combine the vertex coordinates with the extracted values
+vertices$elevation <- elevation_values[, 2]
+vertices$canopy <- canopy_values[, 2]
+# Convert vertices to an sf object
+vertices_sf <- st_as_sf(vertices, coords = c("x", "y"), crs = st_crs(covariates))
+
+# Get the triangles of the mesh
+triangles <- mesh$graph$tv
+
+
+# Create a grid of points over the study area for interpolation
+ext <- terra::ext(covs)
+centers <- expand.grid(seq(ext[1], ext[2],length.out= 200),seq(ext[3], ext[4],length.out= 100)) 
+names(centers) <- c('x','y')
+# Convert to data.frame
+centers_df <- as.data.frame(centers)
+# Convert to sf object
+study_area <- st_as_sf(centers_df, coords = c("x", "y"), crs = crs(covs)) %>% 
+  # remove points outside of shape
+  st_crop(PA)
+grid_points <- st_coordinates(study_area) 
+
+# replace NAs
+vertices$elevation[is.na(vertices$elevation)] <- 0
+vertices$canopy[is.na(vertices$canopy)] <- 0
+
+##2D barycentric interpolation at points Xi for a function with values f measured at locations X
+#For N-D interpolation simply replace tsearch with tsearchn and modify the sparse matrix definition to have non-zero values in the right spots.
+interp.barycentric <- function(X,f,Xi){
+  dn <- delaunayn(X)
+  tri <- tsearch(X[,1],X[,2],dn,Xi[,1],Xi[,2],bary=T)
+  #For each line in Xi, defines which points in X contribute to the interpolation
+  active <- dn[tri$idx,]
+  # Filter out NAs from tri$idx and active
+  valid_idx <- is.na(tri$idx)
+  active[valid_idx, ] <- 1
+  tri$p[valid_idx, ] <- 1
+  
+  # Define the interpolation as a sparse matrix operation
+  M <- sparseMatrix(i = rep(1:nrow(Xi), each = 3), j = as.numeric(t(active)), x = as.numeric(t(tri$p)), dims = c(nrow(Xi), length(f)))
+  as.numeric(M %*% f)
+}
+
+# Interpolate elevation values
+interpolated_elevation <- interp.barycentric(as.matrix(vertices[, c("x", "y")]), vertices$elevation, grid_points)
+
+# Interpolate canopy values
+interpolated_canopy <- interp.barycentric(as.matrix(vertices[, c("x", "y")]), vertices$canopy, grid_points)
+
+# Combine the interpolated points with the values
+interpolated_df <- data.frame(
+  x = grid_points[, 1],
+  y = grid_points[, 2],
+  elevation = interpolated_elevation,
+  canopy = interpolated_canopy
+)
+
+# Convert to sf object
+interpolated_sf <- st_as_sf(interpolated_df, coords = c("x", "y"), crs = st_crs(covariates))
+
+
+# Plot interpolated elevation with regular tiles
+p1 <- ggplot(interpolated_df) +
+  geom_tile(aes(x = x, y = y, fill = elevation)) +
+  labs(title = "Interpolated Elevation", fill = "Elevation")
+p1b <- ggplot() + geom_spatraster(data = covs$elevation)
+# Plot interpolated canopy with regular tiles
+p2 <- ggplot(interpolated_df) +
+  geom_tile(aes(x = x, y = y, fill = canopy)) +
+  labs(title = "Interpolated Canopy", fill = "Canopy")
+p2b <- ggplot() + geom_spatraster(data = covs$canopy)
+
+# Display plots side by side
+p1b + p1 + 
+  p2b + p2 & 
+  scale_fill_viridis_c() 
+```
+These visualizations help us understand the spatial patterns of our environmental covariates and how well they're represented by our mesh structure. This is important because the accuracy of our species distribution predictions will depend partly on how well we capture environmental variation across the landscape.
+
+## Building the Multi-Species Model
+
+Now that we've prepared our data and visualized our covariates, we're ready to set up our multi-species model. We use the `startSpecies` to initialise the multi-species ISDM. The argument `speciesName` is required, and it denotes the name of the species variable common across the datasets. Additional arguments include: `speciesSpatial` to control the type of spatial effect used for the species, `speciesIntercept` to control the intercept for the species and `speciesEnvironment` to control the environmental effects for the species (species-specific effects or shared across species).
+
+For this example, we use a `replicate` approach for the species spatial effects. This is also the default for `startSpecies`, in which each species gets its own spatial field and intercept, but they share hyperparameters. This allows for species-specific spatial patterns while still borrowing strength across species. We've also set `pointsSpatial = NULL` to simplify the model by not including dataset-specific spatial effects.
+
+```{r startSpeciesStart}
+speciesModel <- startSpecies(SetophagaData, Boundary = PA, 
+                             Projection = proj, Mesh = mesh,
+                             responsePA = 'NPres', 
+                             trialsPA = 'Trials',  # Name of no. of trials for binomial data
+                             speciesSpatial = "replicate",   # unique spatial field per species
+                             pointsSpatial = NULL,# Do not include a dataset spatial field
+                             spatialCovariates = covariates, 
+                             speciesName = 'Species_name')
+```
+
+Again, the output of this function is an *R6* object, and additional documentation from the function be be obtained using `?.$help()`.
+
+```{r species help, eval = FALSE}
+
+speciesModel$help()
+
+```
+
+Plotting the multi-species model, shows the distribution by species rather than by dataset as in the previous vignette.
+
+```{r dataset plot}
+#| fig.width: 8 
+#| fig.height: 5
+speciesModel$plot() +
+  theme_bw() +
+  ggtitle('Plot of the species') + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+The resulting plot shows the distribution of observations for each species. This gives us a first look at the data and can help identify potential sampling biases or differences in species ranges.
+
+### Model Specification
+
+As in the single-species model from the previous vignette, we can specify the priors for the fixed and random effects using `.$specifySpatial` , `.$priorsFixed` and `.$specifyRandom`. In `.$specifyRandom`, the argument `speciesGroup` is used to change the prior for the precision (inverse variance) of group model for the spatial effects, and `speciesIntercepts` is used to change the prior for the precision for the random intercept term. For both of these parameters, we choose *pc priors.*
+
+Specify priors for spatial and random effects
+
+```{r specifySpecies}
+# hyper parameters of the spatial field (shared across species)
+speciesModel$specifySpatial(Species = TRUE,  # define same prior for the all species
+                            prior.sigma = c(1, 0.1),  # SD of field variation; P(σ > σ0)
+                            prior.range = c(15, 0.1))  # range of spatial correlation; P(ρ < ρ0)
+
+# prior for intercept of datasets (common for all datasets and all species in the model)
+speciesModel$priorsFixed(Effect = 'Intercept',
+                         mean.linear = 0, 
+                         prec.linear = 0.1)
+
+# prior for random effects (mesh nodes of spatial field and species intercepts)
+speciesModel$specifyRandom(
+  # precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)
+  speciesGroup = list(model = "iid", 
+                      hyper = list(prec = list(prior = "pc.prec",
+                                               param = c(0.1, 0.1)))),  # P(σ > σ0)
+  # precision parameter on the baseline species occurrence rate
+  speciesIntercepts = list(prior = 'pc.prec',
+                           param = c(0.1, 0.1)))  # P(σ > σ0)
+```
+
+Now, we can specify model options and fit the model:
+```{r}
+modelOptions <- list(control.inla = list(int.strategy = 'eb', diagonal = 0.1), 
+                     verbose = FALSE, safe = TRUE)
+
+# Species-specific spatial effects model
+speciesEst <- fitISDM(data = speciesModel, options = modelOptions)
+
+# View summary of the estimated model
+summary(speciesEst)
+```
+### Examining Species-Specific Responses
+
+Let's look at how different species respond to environmental covariates:
+```{r}
+# Extract fixed effects
+fixed_effects <- speciesEst$summary.fixed
+
+# Plot species-specific responses to elevation
+ggplot(fixed_effects[grep("elevation", rownames(fixed_effects)),], 
+       aes(x = rownames(fixed_effects)[grep("elevation", rownames(fixed_effects))], 
+           y = mean, ymin = `0.025quant`, ymax = `0.975quant`)) +
+  geom_pointrange() +
+  coord_flip() +
+  labs(x = "Species", y = "Effect of Elevation", 
+       title = "Species-Specific Responses to Elevation")
+```
+
+### Predicting and plotting
+```{r}
+
+summary(speciesEst)
+
+```
+
+Predictions and plotting are completed as follows:
+
+```{r predictionsSpecies}
+
+speciesPredictions <- predict(speciesEst,
+                              data = fm_pixels(mesh = mesh,
+                                               mask = PA),
+                              spatial = TRUE,
+                              n.samples = 100)
+
+plot(speciesPredictions)
+
+```
+
+
+## Shared species model
+
+The previous model assumed that each species had independent latent distribution, however, if we wish assumed that the species occurrence emerged from a common distribution. We can do this by updating  we could if have Let's fit two models - one with shared spatial effects and one with species-specific spatial effects.
+
+```{r}
+speciesSharedModel <- startSpecies(SetophagaData, Boundary = PA, 
+                             Projection = proj, Mesh = mesh,
+                             responsePA = 'NPres', 
+                             trialsPA = 'Trials',  # Name of no. of trials for binomial data
+                             speciesSpatial = "shared",   # unique spatial field per species
+                             pointsSpatial = NULL,# Do not include a dataset spatial field
+                             spatialCovariates = covariates, 
+                             speciesName = 'Species_name')
+
+```
+
+update model & fit
+```{r}
+# hyper parameters of the spatial field (shared across species)
+speciesSharedModel$specifySpatial(Species = TRUE,  # define same prior for the all species
+                            prior.sigma = c(1, 0.1),  # SD of field variation; P(σ > σ0)
+                            prior.range = c(15, 0.1))  # range of spatial correlation; P(ρ < ρ0)
+
+# prior for intercept of datasets (common for all datasets and all species in the model)
+speciesSharedModel$priorsFixed(Effect = 'Intercept',
+                         mean.linear = 0, 
+                         prec.linear = 0.1)
+
+# prior for random effects (mesh nodes of spatial field and species intercepts)
+speciesSharedModel$specifyRandom(
+  # precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)
+  speciesGroup = list(model = "iid", 
+                      hyper = list(prec = list(prior = "pc.prec",
+                                               param = c(0.1, 0.1)))),  # P(σ > σ0)
+  # precision parameter on the baseline species occurrence rate
+  speciesIntercepts = list(prior = 'pc.prec',
+                           param = c(0.1, 0.1)))  # P(σ > σ0)
+
+# Species-specific spatial effects model
+speciesSharedEst <- fitISDM(data = speciesSharedModel, options = modelOptions)
+```
+
+View results
+```{r}
+# View summary of the estimated model
+summary(speciesSharedEst)
+
+# generate prediction
+speciesSharedPredictions <- predict(speciesSharedEst,
+                              data = fm_pixels(mesh = mesh,
+                                               mask = PA),
+                              spatial = TRUE,
+                              n.samples = 100)
+
+plot(speciesSharedPredictions)
+```
+This shared approach can be particularly useful when species are expected to respond similarly to underlying environmental gradients, or when data for some species is limited.
+
+## Copy model
+
+Finally, we'll implement a `copy` model, where the spatial field is estimated separately for each species but copied across datasets. This approach allows for species-specific spatial effects while maintaining consistency across different data sources:
+
+```{r}
+speciesCopyModel <- startSpecies(SetophagaData, Boundary = PA, 
+                             Projection = proj, Mesh = mesh,
+                             responsePA = 'NPres', 
+                             trialsPA = 'Trials',  # Name of no. of trials for binomial data
+                             speciesSpatial = "copy",   # unique spatial field per species
+                             pointsSpatial = NULL,# Do not include a dataset spatial field
+                             spatialCovariates = covariates, 
+                             speciesName = 'Species_name')
+
+```
+
+Update model & fit
+```{r}
+# hyper parameters of the spatial field (shared across species)
+speciesCopyModel$specifySpatial(Species = TRUE,  # define same prior for the all species
+                            prior.sigma = c(1, 0.1),  # SD of field variation; P(σ > σ0)
+                            prior.range = c(15, 0.1))  # range of spatial correlation; P(ρ < ρ0)
+
+# prior for intercept of datasets (common for all datasets and all species in the model)
+speciesCopyModel$priorsFixed(Effect = 'Intercept',
+                         mean.linear = 0, 
+                         prec.linear = 0.1)
+
+# prior for random effects (mesh nodes of spatial field and species intercepts)
+speciesCopyModel$specifyRandom(
+  # precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)
+  speciesGroup = list(model = "iid", 
+                      hyper = list(prec = list(prior = "pc.prec",
+                                               param = c(0.1, 0.1)))),  # P(σ > σ0)
+  # precision parameter on the baseline species occurrence rate
+  speciesIntercepts = list(prior = 'pc.prec',
+                           param = c(0.1, 0.1)))  # P(σ > σ0)
+
+# Species-specific spatial effects model
+speciesCopyEst <- fitISDM(data = speciesCopyModel, options = modelOptions)
+```
+
+View results
+```{r}
+# View summary of the estimated model
+summary(speciesCopyEst)
+
+# generate prediction
+speciesCopyPredictions <- predict(speciesCopyEst,
+                              data = fm_pixels(mesh = mesh,
+                                               mask = PA),
+                              spatial = TRUE,
+                              n.samples = 100)
+
+plot(speciesCopyPredictions)
+```
+
+The "copy" approach can be particularly useful when you expect species to have distinct spatial patterns, but you want to ensure consistency in how these patterns are estimated across different datasets.
+
+## Species-specific covariate effects
+
+In multi-species models, we may want to allow for species-specific responses to environmental variables  In our case, we know that our three Setophaga species have different associations with coniferous forests: 
+- *Setophaga caerulescens* prefers deciduous forests
+- *Setophaga fusca* is strongly associated with mature coniferous and mixed forests
+- *Setophaga magnolia* favors coniferous and mixed forests
+
+Therefore, we may wish to include effect of coniferous forest cover on only *Setophaga fusca* and *Setophaga magnolia*, which can be achieved using the `changeComponents` slot function. We first have to add coniferous forest to the spatial covariates when initialising the model:
+
+```{r}
+# Load and prepare coniferous forest cover data
+conif_cover <- rast(here("Data/Vignette_setophaga/pa_conif_cover.tiff"))
+
+# Combine all covariates
+all_covariates <- c(covariates, conif_cover)
+
+# Set up the multi-species model
+speciesModelConif <- startSpecies(SetophagaData, 
+                             Boundary = PA, 
+                             Projection = proj, 
+                             Mesh = mesh,
+                             responsePA = 'NPres', 
+                             trialsPA = 'Trials',
+                             speciesSpatial = "replicate",
+                             pointsSpatial = NULL,
+                             spatialCovariates = all_covariates, 
+                             speciesName = 'Species_name',
+                             speciesEnvironment = TRUE)
+```
+
+Next, we can see the components in the model by running `changeComponents()` without specifying any arguments:
+```{r}
+speciesModelConif$changeComponents()  # view available components
+```
+
+Now, we can remove any components that we don't want to include in the model -- in this case the effect of coniferous forest on *Setophaga caerulescens*:
+```{r}
+speciesModelConif$changeComponents(removeComponent = "Setophaga_caerulescens_conif_cover")
+```
+
+Finally, we'll specify priors, fit the model, and examine the results:
+```{r}
+# Specify priors and model options
+speciesModelConif$specifySpatial(Species = TRUE,
+                            prior.sigma = c(1, 0.1),
+                            prior.range = c(15, 0.1))
+
+speciesModelConif$priorsFixed(Effect = 'Intercept',
+                         mean.linear = 0, 
+                         prec.linear = 0.1)
+
+speciesModelConif$specifyRandom(
+  speciesGroup = list(model = "iid", 
+                      hyper = list(prec = list(prior = "pc.prec",
+                                               param = c(0.1, 0.1)))),
+  speciesIntercepts = list(prior = 'pc.prec',
+                           param = c(0.1, 0.1)))
+
+modelOptions <- list(control.inla = list(int.strategy = 'eb', diagonal = 0.1), 
+                     verbose = FALSE, safe = TRUE)
+
+# Fit the model
+speciesEstConif <- fitISDM(data = speciesModelConif, 
+                      options = modelOptions)
+
+# Examine the results
+summary(speciesEstConif)
+```
+In the summary output, pay particular attention to the coefficients for the coniferous forest cover. You should see effects for *S. fusca* and *S. magnolia*, but not for *S. caerulescens*. Compare the magnitude and direction of these effects to what we know about these species' habitat preferences.
+
+This approach allows us to incorporate species-specific ecological knowledge into our multi-species model, potentially improving its biological realism and predictive power while reducing overfitting by leveraging prior knowledge.
+
+
+
+## Bias Correction
+
+In ecological studies, sampling bias is a common issue, especially with citizen science data like eBird. Certain areas might be oversampled due to accessibility or popularity among birders. To account for this, we can incorporate a bias field into our model. This is particularly important for improving predictions based on potentially biased data sources. We can add a bias field to some of the datasets using`$addBias()`.
+ 
+```{r}
+# Add bias field to eBird data
+speciesModel$addBias(datasetNames = 'eBird')
+speciesModel$specifySpatial(Bias = TRUE, 
+                            prior.sigma = c(0.1, 0.1),
+                            prior.range = c(15, 0.1))
+
+# Fit model with bias correction
+biasEst <- fitISDM(data = speciesModel, options = modelOptions)
+
+# Make predictions
+pred_bias <- predict(biasEst,
+                     data = fm_pixels(mesh = mesh, mask = PA),
+                     spatial = TRUE,
+                     n.samples = 100)
+
+# Compare predictions
+plot(speciesPredictions)
+plot(pred_bias)
+```
+
+These plots allow us to compare predictions with and without bias correction. Look for areas where the predictions differ significantly, as these may indicate regions where sampling bias has a strong influence on the model.
+
+We expect the citizen science data (i.e., eBird) to be highly correlated with population density. We can check whether the model identified that pattern by predicting the estimated bias field alone using the argument `bias = TRUE` in the `predict` function.
+
+```{r}
+# predict just the bias field
+pred_bias2 <- predict(biasEst,
+                     data = fm_pixels(mesh = mesh, mask = PA),
+                     bias = TRUE,
+                     n.samples = 100)
+# generate map of the estimated eBird dataset bias
+plot_eBird_bias <- plot(pred_bias2)
+```
+
+Now, we will import population density data downloaded plot/compare this with the estimated eBird bias.
+
+```{r}
+pa_pop <- st_read(here("Data/Vignette_setophaga/PA_pop_density.shp"))
+
+# map log population density
+plot_pap_pop <- ggplot(pa_pop) +
+  geom_sf(aes(fill = density), color = NA, size = 0.2) +
+  scale_fill_viridis(
+    option = "plasma",
+    trans = "log",
+    breaks = c(10, 100, 1000),
+    labels = c("10", "100", "1,000"),
+    name = "Population per sq km"
+  ) 
+
+# plot together
+plot_eBird_bias + plot_pap_pop
+```
+
+This plot shows the estimated spatial pattern of bias in the eBird data. Areas with higher values indicate regions where eBird data might overrepresent species occurrences due to increased sampling effort or other biases. By comparing these plots, we can see how well the estimated bias field corresponds to human population density. This can help validate our bias correction and provide insights into the spatial patterns of sampling effort in citizen science data.
+
+## Conclusion
+In this workshop, we've explored:
+
+- Setting up multi-species iSDMs
+- Comparing models with different spatial structures
+- Examining species-specific responses to environmental variables
+- Correcting for sampling bias
+- Visualizing prediction uncertainty
+
+These tools allow for rich ecological insights and more robust species distribution modeling.
+
+## Compare models Predict distribution
+
+```{r}
+# Compare models
+speciesEst$dic$dic
+speciesSharedEst$dic$dic
+speciesCopyEst$dic$dic
+speciesEstConif$dic$dic
+biasEst$dic$dic
+```
+
+Interpret the DIC values - which model is preferred and why?
