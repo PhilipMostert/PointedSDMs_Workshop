@@ -7,7 +7,6 @@ biblio-style: authoryear
 format: html
 ---
 
-
 # Introduction
 
 This exercise is designed to let you set up your first integrated distribution model. By the end of it, you should know the steps you need to take to do this. Details will come later. As an example, we use three datasets containing three *Setophaga* species collected around Pennsylvania state (United States of America). We will walk through a model for one species, and then you can try it for another species.
@@ -18,13 +17,12 @@ This example aims to predict the distribution of three species of genus *setopha
 
 We will start by modelling the Black-throated blue warbler, *Setophaga caerulescens*. We will use the following data:
 
-- a map of Pennsylvania
-- eBird: Citizen Science data
-- BBS: North American breeding bird survey data: we will use it as the number of stops where the species was seen (out of 50)
-- BBA: Pennsylvania Breeding Bird Atlas. Presence/Absence
-- elevation: Elevation. Height above sea level. Probably sea level at low tide nowadays.
-- canopy: canopy cover (a proxy for forest)
-
+-   a map of Pennsylvania
+-   eBird: Citizen Science data
+-   BBS: North American breeding bird survey data: we will use it as the number of stops where the species was seen (out of 50)
+-   BBA: Pennsylvania Breeding Bird Atlas. Presence/Absence
+-   elevation: Elevation. Height above sea level. Probably sea level at low tide nowadays.
+-   canopy: canopy cover (a proxy for forest)
 
 ## Model preparations
 
@@ -36,7 +34,7 @@ The first step in our analysis is to load in the packages required.
 # devtools::install_github(‘PhilipMostert/PointedSDMs@main’)
 library(PointedSDMs)
 library(INLA)
-library(ggmap)
+library(here)
 library(terra)
 
 ```
@@ -49,7 +47,7 @@ An *sf* object of Pennsylvania (obtained using the *USAboundaries* [@USABoundari
 # if you need to download the package, you have to get it from GitHub
 # devtools::install_github("ropensci/USAboundaries")
 proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
-PA <- USAboundaries::us_states(states = "Pennsylvania")
+PA <- readRDS(here('Data/PA.rds'))
 PA <- st_transform(PA, proj)
 
 ```
@@ -70,7 +68,6 @@ SetohagaData <- sapply(unique(Data$eBird$Species_name), function(sp, data) {
 }, data=Data, simplify=FALSE)
 
 ```
-
 
 ```{r, get_eBird}
 #| code-fold: true
@@ -142,7 +139,7 @@ mesh_plot
 
 ```
 
-## Running the Model 
+## Running the Model
 
 Now we have our data, we need to organise it into a single object. This means we can do hing slike align the different data, e.g. so each data point has the right covariate data. The `startISDM()` function does this. This needs a few arguments, which we will discuss in more detail later.
 
@@ -158,7 +155,6 @@ caerulescensModel <- startISDM(SetohagaData$Setophaga_caerulescens, # the data
                                spatialCovariates = covariates # Environmental covariates
 )
 ```
-
 
 The purpose of this is to package the data together, so that the data all line up with each other, and can be passed to INLAbru nicely. As a side product we can plot the data.
 
@@ -187,7 +183,7 @@ caerulescensEst <- fitISDM(data = caerulescensModel, options = modelOptions)
 
 ```
 
-This takes a few seconds (the options helo with a few thingsa, including speeding it up). Once we have this, we can predict the distribution. Here we show the mean and standard deviation. 
+This takes a few seconds (the options helo with a few thingsa, including speeding it up). Once we have this, we can predict the distribution. Here we show the mean and standard deviation.
 
 ```{r predict and plot}
 #| fig-height: 3
@@ -217,9 +213,9 @@ The intercepts are generally less important: they are largely driven by the samp
 
 Now we can try the same analysis with a different species. These are the steps you should take:
 
-1. organise the data with `startISDM()`
-1. fit the model to the data with `fitISDM()`
-1. Plot the predictions
+1.  organise the data with `startISDM()`
+2.  fit the model to the data with `fitISDM()`
+3.  Plot the predictions
 
 You can choose a species: there is **S. magnolia** (the magnolia warbler), and **S. fusca** (the Blackburnian warbler, but [not this one](https://en.wikipedia.org/wiki/Kathleen_Ferrier))
 
@@ -232,7 +228,6 @@ Aside from making a pretty map, the main ecological question is whether the diff
 
 magnoliaData <- SetohagaData$Setophaga_magnolia
 ```
-
 
 ```{r magnoliastart}
 #| eval: false
@@ -254,7 +249,6 @@ magnoliaModel$plot() +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-
 ```{r magnoliafit}
 #| eval: false
 #| code-fold: true
@@ -262,7 +256,6 @@ magnoliaModel$plot() +
 
 magnoliaEst <- fitISDM(data = magnoliaModel, options = modelOptions)
 ```
-
 
 ```{r magnoliapre}
 #| eval: false
@@ -278,7 +271,6 @@ magnoliaPredictions <- predict(magnoliaEst,
 plot(magnoliaPredictions, variable = c('mean', 'sd'))
 ```
 
-
 ```{r magnoliaests}
 #| eval: false
 #| code-fold: true
@@ -288,11 +280,6 @@ summary(magnoliaEst)$fixed
 
 ```
 
-
-
-
-
-
 ## S. fusca
 
 ```{r fuscaeg}
@@ -300,7 +287,6 @@ summary(magnoliaEst)$fixed
 
 fuscaData <- SetohagaData$Setophaga_fusca
 ```
-
 
 ```{r fuscastart}
 #| eval: false
@@ -322,7 +308,6 @@ fuscaModel$plot() +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-
 ```{r fuscafit}
 #| eval: false
 #| code-fold: true
@@ -330,7 +315,6 @@ fuscaModel$plot() +
 
 fuscaEst <- fitISDM(data = fuscaModel, options = modelOptions)
 ```
-
 
 ```{r fuscapre}
 #| eval: false
@@ -346,7 +330,6 @@ fuscaPredictions <- predict(fuscaEst,
 plot(fuscaPredictions, variable = c('mean', 'sd'))
 ```
 
-
 ```{r fuscaests}
 #| eval: false
 #| code-fold: true
@@ -356,8 +339,9 @@ summary(fuscaEst)$fixed
 
 ```
 
+```{=html}
 <!---
 <details><summary><span style="color:blue">Hint</span></summary> </details>
 <details><summary><span style="color:red">Answer</span></summary> </details>
 --->
-
+```
