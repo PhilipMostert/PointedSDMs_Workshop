@@ -55,8 +55,8 @@ library(knitr)
 library(kableExtra)
 library(dplyr)
 library(spocc)
-# library(here)
-# library(patchwork)
+library(here)
+library(patchwork)
 
 # Load and prepare data
 proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
@@ -283,6 +283,24 @@ speciesPredictions <- predict(speciesEst,
 plot(speciesPredictions)
 
 ```
+
+
+# Sharing parts of the model across data set and species
+
+We can share parts of the model across species and data sets. The terminology is a bit tricky. So...
+
+If we want to share information across species, we might have a model 
+
+$$
+\lambda_i(\bf{s}) = \alpha_i + \varepsilon_i(\bf{s}) \\
+\varepsilon_i(\bf{s}) \sim N(0, \sigma_i^2)
+$$
+
+We can share information in 3 ways:
+
+- share everything: $\varepsilon_i(\bf{s}) = \varepsilon(\bf{s})$. Same random field across all species
+- share hyper-parameters: $\sigma_i^2 = \sigma^2$. Different random field, but shared hyperparameters
+- share nothing: $\varepsilon_i(\bf{s})$ and $\sigma_i^2$ all different
 
 
 ## Shared species model
