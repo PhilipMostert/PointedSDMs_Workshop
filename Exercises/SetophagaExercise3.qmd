@@ -55,8 +55,8 @@ library(knitr)
 library(kableExtra)
 library(dplyr)
 library(spocc)
-library(here)
-library(patchwork)
+# library(here)
+# library(patchwork)
 
 # Load and prepare data
 proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
