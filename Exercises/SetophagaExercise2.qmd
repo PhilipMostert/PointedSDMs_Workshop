@@ -7,14 +7,13 @@ biblio-style: authoryear
 format: html
 ---
 
-
 # Introduction
 
 In the first exercise you went through the steps to building an integrated model. Now we will look at the steps in a bit more detail. We will also improve the models after they have been set up (e.g. changing priors, changing the model), and look at how to evaluate how well the model fits the data.
 
 ## *Setophaga* example
 
-We will continue with the *Setophaga* data. As before, we will start by modelling the Black-throated blue warbler, *Setophaga caerulescens*. 
+We will continue with the *Setophaga* data. As before, we will start by modelling the Black-throated blue warbler, *Setophaga caerulescens*.
 
 ### Model preparations
 
@@ -26,26 +25,22 @@ The first step in our analysis is to load in the packages required.
 ##Install if need be: you will need v2.0
 # devtools::install_github(‘PhilipMostert/PointedSDMs@main’)
 library(PointedSDMs)
-
 library(INLA)
- library(ggmap)
+library(here)
 library(terra)
 
 ```
 
-
 A reminder, we have the following data:
 
-- a map of Pennsylvania
-- eBird: data for 3 species
-- BBS: North American breeding bird survey data
-- BBA: Pennsylvania Breeding Bird Atlas
-- elevation: Elevation. Height above sea level. Probably sea level at low tide nowadays.
-- canopy: canopy cover (a proxy for forest)
-
+-   a map of Pennsylvania
+-   eBird: data for 3 species
+-   BBS: North American breeding bird survey data
+-   BBA: Pennsylvania Breeding Bird Atlas
+-   elevation: Elevation. Height above sea level. Probably sea level at low tide nowadays.
+-   canopy: canopy cover (a proxy for forest)
 
 First we will go through the steps of importing the data. You may already have done this.
-
 
 ```{r Map of PA}
 #| code-fold: true
@@ -54,7 +49,7 @@ First we will go through the steps of importing the data. You may already have d
 # if you need to download the package, you have to get it gtom GitHub
 # devtools::install_github("ropensci/USAboundaries")
 proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
-PA <- USAboundaries::us_states(states = "Pennsylvania")
+PA <- readRDS(here('Data/PA.rds'))
 PA <- st_transform(PA, proj)
 
 # Species data
@@ -80,10 +75,10 @@ covariates$elevation_ebird <- covariates$elevation # we will use this later...
 
 Now we have the data in several datasets. Next we need to integrate it into a common format that PointedSDMs can use. We need to pass it a few things:
 
-- the boundary of the region
-- a mesh
-- each data set
-- any covariates
+-   the boundary of the region
+-   a mesh
+-   each data set
+-   any covariates
 
 We have the boundary (`PA`). For this and several other components we also need the projection (`proj`): to over-simplify, this tells us what units our our coordinates are in (with the added problem that our measurements aren't Euclidean, because they are on a globe). Our species data re in `SetohagaData`, and our covaraites are in `covariates`.
 
@@ -91,7 +86,7 @@ We also need a mesh. We need this because we are calculating intensities all ove
 
 ## Designing a mesh
 
-Designing a good mesh is a dark art, that we are not sure anyone really understands. Fortunately Pennsylvania is a simple shape, so the mesh is not too complicated. Thanks to Slartibartfast's efforts, it is more difficult to get a good mesh for crinkly countries like Norway. 
+Designing a good mesh is a dark art, that we are not sure anyone really understands. Fortunately Pennsylvania is a simple shape, so the mesh is not too complicated. Thanks to Slartibartfast's efforts, it is more difficult to get a good mesh for crinkly countries like Norway.
 
 ```{r MeshBIG}
 #| echo: true
@@ -162,11 +157,11 @@ caerulescensEst <- fitISDM(data = caerulescensModel)
 
 The `startISDM()` function is used to put the pieces together. In essence, we provide it with this information:
 
-- the different data sets
-- the mesh and boundary (to define the area we are modelling)
-- which data columns are counts or presence/absence (i.e. what are the likelihoods for these data).
+-   the different data sets
+-   the mesh and boundary (to define the area we are modelling)
+-   which data columns are counts or presence/absence (i.e. what are the likelihoods for these data).
 
-But we can also provide more: above we add a `Formulas` list. The model in the first exercise assumed that the covariates had linear effects, but here we also add quadratic terms. 
+But we can also provide more: above we add a `Formulas` list. The model in the first exercise assumed that the covariates had linear effects, but here we also add quadratic terms.
 
 Once we have this set up, we can edit the model to change things like priors, and add different terms.
 
@@ -189,7 +184,6 @@ caerulescensModel$help()
 
 We can add and modify spatial terms with `.$specifySpatial`. For example, if we want to change the spatial effect on the actual distribution (i.e. the residual spatial field), we can do it like this:
 
-
 ```{r specifySpatial}
 
 caerulescensModel$specifySpatial(sharedSpatial = TRUE,
@@ -198,7 +192,7 @@ caerulescensModel$specifySpatial(sharedSpatial = TRUE,
 caerulescensEst <- fitISDM(data = caerulescensModel)
 ```
 
-First, note that this changes the `caerulescensModel` object (so is different to classical R syntax). The `prior.sigma`and `prior.range` are parameters for a PC prior. We will sidestep what their details for now, but [good introductions are available](https://becarioprecario.bitbucket.io/inla-gitbook/ch-priors.html#sec:pcpriors). 
+First, note that this changes the `caerulescensModel` object (so is different to classical R syntax). The `prior.sigma`and `prior.range` are parameters for a PC prior. We will sidestep what their details for now, but [good introductions are available](https://becarioprecario.bitbucket.io/inla-gitbook/ch-priors.html#sec:pcpriors).
 
 ### Priors for fixed effects:`.$priorsFixed`
 
@@ -226,7 +220,7 @@ We can also update the formula, to change the model. For example, here we add a 
 #| eval: false
 
 caerulescensModel$updateFormula(???, 
-                              Formula = . ~ . + I(elevation^2))
+                              Formula = ~ . + I(elevation^2))
 
 caerulescensEst <- fitISDM(data = caerulescensModel, 
                    options = modelOptions)
@@ -262,16 +256,16 @@ summary(caerulescensEst)$hyper
 
 ```
 
-
-
-If we want to model the observation process for a data set, we can do that by changing the formula for the dataset. For example, we might think that birders in Pennsylvania don't like heights (if they did, they would be in Colorado, after all), and add elevation as a covarate:
+If we want to model the observation process for a data set, we can do that by changing the formula for the dataset. For example, we might think that birders in Pennsylvania don't like heights (if they did, they would be in Colorado, after all), and add elevation as a covariate:
 
 ```{r AddEbirdCovariate}
 #| eval: true
 
-# This does not seem to be working!!!!!
-caerulescensModel$updateFormula(data='ebird',
+caerulescensModel$updateFormula(datasetName = 'ebird',
                               Formula = ~ . + elevation_ebird)
+
+caerulescensModel$changeComponents(addComponent = 
+                                   'elevation_ebird(main = elevation, model = "linear")')
 
 caerulescensEst <- fitISDM(data = caerulescensModel, 
                    options = modelOptions)
@@ -283,23 +277,22 @@ This model might seem slightly strange: we have elevation as a process model, bu
 
 ##### Model evaluation
 
-*PointedSDMs* has two functions to functions to evaluate models. These are `blockedCV` and `datasetOut` Both do cross- validation, but in different ways. 
+*PointedSDMs* has two functions to functions to evaluate models. These are `blockedCV` and `datasetOut` Both do cross- validation, but in different ways.
 
-- `blockedCV` does block cross-validation,  by removing blocks from the training data, and using them as test data. 
-- `datasetOut` drops each data set, and then tests on it.
+-   `blockedCV` does block cross-validation, by removing blocks from the training data, and using them as test data.
+-   `datasetOut` drops each data set, and then tests on it.
 
 ###### Block Cross validation
 
-`.$spatialBlock` is used to set up spatial blocked cross-validation for the model by assigning each point in the datasets a block based on where the point is located spatially. For this example, we chose four blocks (`k=2`) for our model, based around a 2x2 grid (`rows = 2, cols = 2`). See the figure below for an illustration of the spatial block: the amount of data within each block appears reasonably equal.
+`.$spatialBlock` is used to set up spatial blocked cross-validation for the model by assigning each point in the datasets a block based on where the point is located spatially. For this example, we chose four blocks (`k=4`) for our model, based around a 2x2 grid (`rows = 2, cols = 2`). See the figure below for an illustration of the spatial block: the amount of data within each block appears reasonably equal.
 
 ```{r spatialBlock, warning = FALSE, message = FALSE,  fig.width=8, fig.height=5}
 
-caerulescensModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+caerulescensModel$spatialBlock(k = 4, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
 
 ```
 
-
-The blocked model may then be estimated with `blockedCV`. Note that this will estimate `k` models, so it may take a while to complete. Plus, with this ecample it falls apart.
+The blocked model may then be estimated with `blockedCV`. Note that this will estimate `k` models, so it may take a while to complete. Plus, with this example it falls apart.
 
 ```{r blockedCV, warning = FALSE, eval = FALSE}
 # this gives lots of warnings
@@ -308,13 +301,12 @@ spatialBlocked <- blockedCV(data = caerulescensModel,
 spatialBlocked
 ```
 
-
 More so, we can compare the cross-validation score from this model to one without the shared spatial effect (specified with `pointsSpatial = FALSE` in `startISDM`).
 
 ```{r No fields model, message = FALSE, warning = FALSE}
 
 caerulescens_no_fields <- startISDM(SetohagaData$Setophaga_caerulescens, 
-                      pointsSpatial = NULL,
+                          pointsSpatial = NULL, #no spatial effect
                           Boundary = PA, # a polygon of the boundary
                           Projection = proj, # the geographical projection
                           Mesh = mesh, # the mesh, which we have just made
@@ -326,7 +318,7 @@ caerulescens_no_fields <- startISDM(SetohagaData$Setophaga_caerulescens,
 
 caerulescens_no_fields_model <- fitISDM(data = caerulescens_no_fields)
 
-caerulescens_no_fields$spatialBlock(k = 2, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+caerulescens_no_fields$spatialBlock(k = 4, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
 
 spatialBlocked_no_fields <- blockedCV(data = caerulescens_no_fields, 
                                       options = modelOptions)
@@ -336,10 +328,9 @@ spatialBlocked_no_fields
 
 Based on the DIC scores, we conclude that the model with the shared spatial field provides a better fit of the data.
 
-
 ##### Validation by Data set
 
-We can also try validation by dropping a data set, fitting to the model to the other data sets and then using the dropped data set to valilate the model. We can use the `datasetOut()` function to do this.
+We can also try validation by dropping a data set, fitting to the model to the other data sets and then using the dropped data set to validate the model. We can use the `datasetOut()` function to do this.
 
 By setting `predictions = TRUE` we are able to calculate some cross-validation score by leaving out the selected dataset, but using the predicted values as an offset in a new model, and then finding the difference between the marginal-likelihood of the full model (i.e the model with all the datasets considered) and the marginal-likelihood of the offset model.
 
@@ -356,18 +347,16 @@ dataset_out
 
 Note that this is not stable, thanks to the mesh.
 
-
-
 # Your turn
 
 Now we can try the same analysis with a different species. These are the steps you need to take:
 
-1. download the species data
-1. download the covariate data
-1. make a mesh (you will ned a boundary)
-1. organise the data with `startISDM()`
-1. fit the model to the data with `fitISDM()`
-1. Plot the predictions
+1.  download the species data
+2.  download the covariate data
+3.  make a mesh (you will ned a boundary)
+4.  organise the data with `startISDM()`
+5.  fit the model to the data with `fitISDM()`
+6.  Plot the predictions
 
 We will help you with the first couple of steps. Here is the first model for the magnolia
 
@@ -392,7 +381,6 @@ magnoliaModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
 
 
 ```
-
 
 ```{r Load data 3}
 #| eval: true
@@ -419,9 +407,7 @@ fuscaModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
 
 ```
 
-
-
-1. are quadratic effects worth adding?
+1.  are quadratic effects worth adding?
 
 ```{r FormulaProcessmagnolia}
 #| eval: false
@@ -438,10 +424,7 @@ summary(magnoliaEst)$fixed
 
 ```
 
-
-2. Should we add a bias field?
-
-
+2.  Should we add a bias field?
 
 ```{r BiasMagnolia}
 #| code-fold: true
@@ -466,7 +449,6 @@ magnoliaBlockedBias
 
 ```
 
-
 ```{r BiasFusca}
 #| code-fold: true
 #| code-summary: Here is the code for the fusca analysis
@@ -490,10 +472,14 @@ fuscaBlockedBias
 
 ```
 
+<details>
 
+<summary>[Hint]{style="color:blue"}</summary>
 
-<details><summary><span style="color:blue">Hint</span></summary> </details>
+</details>
 
-<details><summary><span style="color:red">Answer</span></summary> </details>
+<details>
 
+<summary>[Answer]{style="color:red"}</summary>
 
+</details>
