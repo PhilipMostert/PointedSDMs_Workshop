@@ -12,7 +12,7 @@
 
   <meta name="author" content="Bob O’Hara">
   <meta name="dcterms.date" content="2024-07-13">
-  <title>Intro_to_ISDMs</title>
+  <title>Intro to ISDMs</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -327,7 +327,7 @@
     <div class="slides">
 
 <section id="title-slide" class="quarto-title-block center">
-  <h1 class="title">Intro_to_ISDMs</h1>
+  <h1 class="title">Intro to ISDMs</h1>
 
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
@@ -346,13 +346,33 @@ Bob O’Hara
 <h2>Who We Are</h2>
 <div class="columns">
 <div class="column" style="width:25%;">
-<p>Bob O’Hara</p>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="Images/BobOH.jpg"></p>
+<figcaption>Bob O’Hara</figcaption>
+</figure>
+</div>
 </div><div class="column" style="width:25%;">
-<p>Philip Mostert</p>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="Images/Philip.jpg"></p>
+<figcaption>Philip Mostert</figcaption>
+</figure>
+</div>
 </div><div class="column" style="width:25%;">
-<p>Kwaku Adjei</p>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="Images/Kwaku.jpg"></p>
+<figcaption>Kwaku Adjei</figcaption>
+</figure>
+</div>
 </div><div class="column" style="width:25%;">
-<p>Ron Togonov</p>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="Images/RonT.jpg"></p>
+<figcaption>Ron Togonov</figcaption>
+</figure>
+</div>
 </div>
 </div>
 </section>
@@ -364,15 +384,15 @@ Bob O’Hara
 <section id="data-are-messy" class="slide level2">
 <h2>Data are messy</h2>
 
-<img data-src="LepsNA.gif" class="r-stretch quarto-figure-center"><p class="caption">GBIF data</p></section>
+<img data-src="Images/LepsNA.gif" class="r-stretch"></section>
 <section id="data-are-messy-1" class="slide level2">
 <h2>Data are messy</h2>
 
-<img data-src="JohanTrap.JPG" class="r-stretch quarto-figure-center"><p class="caption">Johan trap</p></section>
+<img data-src="Images/JohanTrap.JPG" class="r-stretch"></section>
 <section id="merge-data" class="slide level2">
 <h2>Merge data</h2>
-<p>….</p>
-</section></section>
+
+<img data-src="Images/TomGaiuuldAI.jpg" class="r-stretch quarto-figure-center"><p class="caption">Cartoon by Tom Gauld: https://www.tomgauld.com/</p></section></section>
 <section>
 <section id="the-model-framework" class="title-slide slide level1 center">
 <h1>The Model Framework</h1>
@@ -381,12 +401,12 @@ Bob O’Hara
 <section id="the-pieces" class="slide level2">
 <h2>The Pieces</h2>
 <ul>
-<li><span class="math inline">\(P(Y_d|\lambda(s))\)</span>: One observation model per data set</li>
-<li><span class="math inline">\(P(\lambda(s))\)</span> One process model</li>
+<li><span class="math inline">\(P(Y_d | \lambda(\mathbf{s}), \theta_d)\)</span>: One observation model per data set</li>
+<li><span class="math inline">\(P(\lambda(\mathbf{s}))\)</span> One process model</li>
 </ul>
 <p>Full likelihood</p>
 <p><span class="math display">\[
-P(\lambda({\bf{s}})) \prod_{d=1}^D P(Y_d|\lambda(\bf{s}))
+L(Y | \theta_d) = P(\lambda(\mathbf{s})) \prod_{d=1}^{M}P(Y_d | \lambda(\mathbf{s}), \theta_d)
 \]</span></p>
 </section>
 <section id="point-processes" class="slide level2">
@@ -399,7 +419,7 @@ P(\lambda({\bf{s}})) \prod_{d=1}^D P(Y_d|\lambda(\bf{s}))
 <p><span class="math display">\[
 \mu_A = \int_A \lambda({\bf s}) d{\bf s}
 \]</span></p>
-<p>Actual number follows a Poisson distributiuon with mean <span class="math inline">\(\mu_A\)</span></p>
+<p>Actual number follows a Poisson distribution with mean <span class="math inline">\(\mu_A\)</span></p>
 </section>
 <section id="observation-processes" class="slide level2">
 <h2>Observation processes</h2>

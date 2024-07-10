@@ -1,5 +1,5 @@
 ---
-title: "Intro_to_ISDMs"
+title: "Intro to ISDMs"
 author: "Bob O'Hara"
 institute: 'Norwegian University of Science and Technology'
 date: '13 July 2024'
@@ -11,19 +11,22 @@ format: revealjs
 :::: {.columns}
 
 ::: {.column width="25%"}
-Bob O'Hara
+![Bob O'Hara](Images/BobOH.jpg)
+
 :::
 
 ::: {.column width="25%"}
-Philip Mostert
+
+![Philip Mostert](Images/Philip.jpg)
 :::
 
 ::: {.column width="25%"}
-Kwaku Adjei
+
+![Kwaku Adjei](Images/Kwaku.jpg)
 :::
 
 ::: {.column width="25%"}
-Ron Togonov
+![Ron Togonov](Images/RonT.jpg)
 :::
 
 ::::
@@ -32,29 +35,30 @@ Ron Togonov
 
 ## Data are messy
 
-![GBIF data](LepsNA.gif)
+![](Images/LepsNA.gif)
 
 
 ## Data are messy
 
-![Johan trap](JohanTrap.JPG)
+![](Images/JohanTrap.JPG)
 
 
 ## Merge data
 
-....
+![Cartoon by Tom Gauld: https://www.tomgauld.com/](Images/TomGaiuuldAI.jpg)
+
 
 # The Model Framework
 
 ## The Pieces
 
-- $P(Y_d|\lambda(s))$:  One observation model per data set
-- $P(\lambda(s))$ One process model
+- $P(Y_d | \lambda(\mathbf{s}), \theta_d)$:  One observation model per data set
+- $P(\lambda(\mathbf{s}))$ One process model
 
 Full likelihood
 
 $$
-P(\lambda({\bf{s}})) \prod_{d=1}^D P(Y_d|\lambda(\bf{s}))
+L(Y | \theta_d) = P(\lambda(\mathbf{s})) \prod_{d=1}^{M}P(Y_d | \lambda(\mathbf{s}), \theta_d)
 $$
 
 ## Point Processes
@@ -69,7 +73,7 @@ $$
 \mu_A = \int_A \lambda({\bf s}) d{\bf s}
 $$
 
-Actual number follows a Poisson distributiuon with mean $\mu_A$
+Actual number follows a Poisson distribution with mean $\mu_A$
 
 ## Observation processes
 
