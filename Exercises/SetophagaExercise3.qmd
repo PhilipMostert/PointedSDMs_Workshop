@@ -51,7 +51,7 @@ library(patchwork)
 
 # Load and prepare data
 proj <- "+proj=utm +zone=17 +datum=WGS84 +units=km"
-PA <- USAboundaries::us_states(states = "Pennsylvania") %>% st_transform(proj)
+PA <- readRDS(here('Data/PA.rds')) %>% st_transform(proj)
 SetophagaData <- readRDS(here("Data/Vignette_setophaga/SetophagaData.rds"))
 covariates <- scale(terra::rast(system.file('extdata/SetophagaCovariates.tif', package = "PointedSDMs")))
 names(covariates) <- c('elevation', 'canopy')
@@ -278,26 +278,24 @@ speciesPredictions <- predict(speciesEst,
                               spatial = TRUE,
                               n.samples = 100)
 
-plot(speciesPredictions)
+plot(speciesPredictions, variable = c('mean', 'sd'))
 
 ```
 
 # Sharing parts of the model across data set and species
 
-We can share parts of the model across species and data sets. The terminology is a bit tricky. So...
-
-If we want to share information across species, we might have a model
+If we want to share information across species, we might have a model:
 
 $$
-\lambda_i(\bf{s}) = \alpha_i + \varepsilon_i(\bf{s}) \\
-\varepsilon_i(\bf{s}) \sim N(0, \sigma_i^2)
+\lambda_i(\bf{s}) = \alpha_i + \zeta_i(\bf{s}) \\
+\zeta_i(\bf{s}) \sim N(0, \sigma_i^2)
 $$
 
-We can share information in 3 ways:
+where $\zeta_i(\bf{s})$ is a species level spatial effect with covariance matrix $\sigma^2_i$ . We can share information in 3 ways using the argument `speciesSpatial`:
 
--   **share** share everything: $\varepsilon_i(\bf{s}) = \varepsilon(\bf{s})$. Same random field across all species
--   **replicate** share hyper-parameters: $\sigma_i^2 = \sigma^2$. Different random field, but shared hyperparameters
--   **copy** share nothing: $\varepsilon_i(\bf{s})$ and $\sigma_i^2$ all different
+-   **`"share"`** share everything: $\zeta_i(\bf{s}) = \zeta(\bf{s})$. Same random field across all species
+-   **`"replicate"`** share hyper-parameters: $\sigma_i^2 = \sigma^2$. Different random field for each species, but shared hyperparameters.
+-   **`"copy"`** share nothing: $\zeta_i(\bf{s})$ and $\sigma_i^2$ all different. This may take a long time to estimate as the number of species greatly increases.
 
 ## Shared species model
 
@@ -419,7 +417,7 @@ speciesCopyPredictions <- predict(speciesCopyEst,
 plot(speciesCopyPredictions)
 ```
 
-The "copy" approach can be particularly useful when you expect species to have distinct spatial patterns, but you want to ensure consistency in how these patterns are estimated across different datasets.
+The **`"copy"`** approach can be particularly useful when you expect species to have distinct spatial patterns, but you want to ensure consistency in how these patterns are estimated across different datasets.
 
 ## Species-specific covariate effects
 
@@ -553,7 +551,7 @@ plot_pap_pop <- ggplot(pa_pop) +
 plot_eBird_bias + plot_pap_pop
 ```
 
-This plot shows the estimated spatial pattern of bias in the eBird data. Areas with higher values indicate regions where eBird data might overrepresent species occurrences due to increased sampling effort or other biases. By comparing these plots, we can see how well the estimated bias field corresponds to human population density. This can help validate our bias correction and provide insights into the spatial patterns of sampling effort in citizen science data.
+This plot shows the estimated spatial pattern of bias in the eBird data. Areas with higher values indicate regions where eBird data might over represent species occurrences due to increased sampling effort or other biases. By comparing these plots, we can see how well the estimated bias field corresponds to human population density. This can help validate our bias correction and provide insights into the spatial patterns of sampling effort in citizen science data.
 
 ## Conclusion
 

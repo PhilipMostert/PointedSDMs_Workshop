@@ -34,6 +34,7 @@ The first step in our analysis is to load in the packages required.
 # devtools::install_github(‘PhilipMostert/PointedSDMs@main’)
 library(PointedSDMs)
 library(INLA)
+library(ggplot2)
 library(here)
 library(terra)
 

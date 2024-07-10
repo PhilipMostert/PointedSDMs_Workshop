@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Bob O’Hara">
-<meta name="dcterms.date" content="2024-07-03">
+<meta name="dcterms.date" content="2024-07-10">
 
 <title>SetophagaExercise</title>
 <style>
@@ -118,7 +118,7 @@ div.csl-indent {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 3, 2024</p>
+      <p class="date">July 10, 2024</p>
     </div>
   </div>
   
@@ -143,9 +143,9 @@ div.csl-indent {
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Install if need be: you will need v2.0</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github(‘PhilipMostert/PointedSDMs@main’)</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(PointedSDMs)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(INLA)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a> <span class="fu">library</span>(ggmap)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>A reminder, we have the following data:</p>
@@ -165,7 +165,7 @@ div.csl-indent {
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># if you need to download the package, you have to get it gtom GitHub</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("ropensci/USAboundaries")</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>proj <span class="ot">&lt;-</span> <span class="st">"+proj=utm +zone=17 +datum=WGS84 +units=km"</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>PA <span class="ot">&lt;-</span> USAboundaries<span class="sc">::</span><span class="fu">us_states</span>(<span class="at">states =</span> <span class="st">"Pennsylvania"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>PA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">'Data/PA.rds'</span>))</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>PA <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(PA, proj)</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Species data</span></span>
@@ -239,7 +239,7 @@ div.csl-indent {
 </div>
 </div>
 </div>
-<p>Our coarse mesh is OK, and has 228 points in it. We also have a big mesh with 20674 points, which takes longer to run but produces better results. We would suggest you wait until after the workshop to try it (it only takes a few minutes, but will be annoying if we start another exercise whilst you’re waiting.</p>
+<p>Our coarse mesh is OK, and has 227 points in it. We also have a big mesh with 20596 points, which takes longer to run but produces better results. We would suggest you wait until after the workshop to try it (it only takes a few minutes, but will be annoying if we start another exercise whilst you’re waiting.</p>
 </section>
 <section id="integrating-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="integrating-the-data">Integrating the data</h2>
@@ -287,7 +287,7 @@ div.csl-indent {
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">sharedSpatial =</span> <span class="cn">TRUE</span>,</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),  <span class="co"># P(sigma &gt; 1) = 0.1</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>)) <span class="co"># P(range &lt; 15) = 0.1</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>)) <span class="co"># P(range &lt; 1) = 0.1</span></span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>caerulescensEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>First, note that this changes the <code>caerulescensModel</code> object (so is different to classical R syntax). The <code>prior.sigma</code>and <code>prior.range</code> are parameters for a PC prior. We will sidestep what their details for now, but <a href="https://becarioprecario.bitbucket.io/inla-gitbook/ch-priors.html#sec:pcpriors">good introductions are available</a>.</p>
@@ -307,7 +307,7 @@ div.csl-indent {
 <pre><code>Summary of 'modISDM' object:
 
 inlabru version: 2.10.1
-INLA version: 24.06.04
+INLA version: 24.06.27
 
 Types of data modelled:
                                     
@@ -317,11 +317,11 @@ BBS                  Present absence</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                  mean    sd 0.025quant 0.5quant 0.975quant   mode kld
-ebird_intercept -4.834 0.184     -5.195   -4.834     -4.473 -4.834   0
-BBA_intercept   -1.839 0.086     -2.009   -1.839     -1.669 -1.839   0
-BBS_intercept   -2.937 0.125     -3.183   -2.937     -2.691 -2.937   0
-elevation        0.863 0.054      0.756    0.863      0.969  0.863   0
-canopy           0.764 0.048      0.670    0.764      0.858  0.764   0</code></pre>
+ebird_intercept -4.832 0.183     -5.191   -4.832     -4.474 -4.832   0
+BBA_intercept   -1.866 0.087     -2.036   -1.866     -1.696 -1.866   0
+BBS_intercept   -2.938 0.127     -3.187   -2.938     -2.690 -2.938   0
+elevation        0.879 0.055      0.773    0.879      0.986  0.879   0
+canopy           0.777 0.048      0.682    0.777      0.871  0.777   0</code></pre>
 </div>
 </div>
 <p>The prior here is ridiculously tight, but we can see that it does affect the posterior.</p>
@@ -332,7 +332,7 @@ canopy           0.764 0.048      0.670    0.764      0.858  0.764   0</code></p
 <p>We can also update the formula, to change the model. For example, here we add a quadratic effect of elevation.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">updateFormula</span>(???, </span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> . <span class="sc">~</span> . <span class="sc">+</span> <span class="fu">I</span>(elevation<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> <span class="sc">~</span> . <span class="sc">+</span> <span class="fu">I</span>(elevation<span class="sc">^</span><span class="dv">2</span>))</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>caerulescensEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">options =</span> modelOptions)</span>
@@ -345,7 +345,7 @@ canopy           0.764 0.048      0.670    0.764      0.858  0.764   0</code></p
 </section>
 <section id="spatial-bias" class="level2">
 <h2 class="anchored" data-anchor-id="spatial-bias">Spatial bias</h2>
-<p>A well known problem with people is that they don’t collect data according to well designed experimental protocols. With citizen science data, such as eBird, we want to correct for spatial biases in where people collect. We can add covaraites to model this bias, but here we will model the bias with a spatial field, something which seems to work surprisingly well <span class="citation" data-cites="simmonds2020more">(<a href="#ref-simmonds2020more" role="doc-biblioref">Simmonds et al. 2020</a>)</span>. We can add it to the model like this:</p>
+<p>A well known problem with people is that they don’t collect data according to well designed experimental protocols. With citizen science data, such as eBird, we want to correct for spatial biases in where people collect. We can add covariates to model this bias, but here we will model the bias with a spatial field, something which seems to work surprisingly well <span class="citation" data-cites="simmonds2020more">(<a href="#ref-simmonds2020more" role="doc-biblioref">Simmonds et al. 2020</a>)</span>. We can add it to the model like this:</p>
 <p>First we add a bias field, with <code>$addBias()</code>. We could fit the model at that point, but then we change the prior to a PC prior.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">help</span>() <span class="co"># use this to see what data sets are available, and what their names are</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -369,7 +369,7 @@ canopy           0.764 0.048      0.670    0.764      0.858  0.764   0</code></p
 <pre><code>Summary of 'modISDM' object:
 
 inlabru version: 2.10.1
-INLA version: 24.06.04
+INLA version: 24.06.27
 
 Types of data modelled:
                                     
@@ -379,28 +379,42 @@ BBS                  Present absence</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                            mean    sd 0.025quant 0.5quant 0.975quant   mode
-Range for ebird_spatial   35.172 8.725     20.304   34.394     54.380 33.173
-Stdev for ebird_spatial    1.277 0.172      0.969    1.267      1.644  1.249
-Range for ebird_biasField 59.011 6.820     46.734   58.618     73.550 57.836
-Stdev for ebird_biasField  1.938 0.150      1.661    1.932      2.252  1.918
-Beta for BBA_spatial       0.365 0.079      0.211    0.364      0.524  0.361
-Beta for BBS_spatial       1.521 0.166      1.208    1.517      1.860  1.498</code></pre>
+Range for ebird_spatial   33.962 8.570     19.364   33.197     52.816 32.001
+Stdev for ebird_spatial    1.312 0.176      0.996    1.301      1.689  1.281
+Range for ebird_biasField 59.073 6.791     46.837   58.687     73.537 57.920
+Stdev for ebird_biasField  1.948 0.149      1.672    1.941      2.261  1.927
+Beta for BBA_spatial       0.381 0.080      0.226    0.380      0.542  0.377
+Beta for BBS_spatial       1.530 0.164      1.222    1.526      1.868  1.504</code></pre>
 </div>
 </div>
-<p>If we want to model the observation process for a data set, we can do that by changing the formula for the dataset. For example, we might think that birders in Pennsylvania don’t like heights (if they did, they would be in Colorado, after all), and add elevation as a covarate:</p>
+<p>If we want to model the observation process for a data set, we can do that by changing the formula for the dataset. For example, we might think that birders in Pennsylvania don’t like heights (if they did, they would be in Colorado, after all), and add elevation as a covariate. We also need to add the corresponding component using <code>.$addComponents</code> to ensure that it gets estimated.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># This does not seem to be working!!!!!</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">updateFormula</span>(<span class="at">data=</span><span class="st">'ebird'</span>,</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> <span class="sc">~</span> . <span class="sc">+</span> elevation_ebird)</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>caerulescensEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">options =</span> modelOptions)</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(caerulescensEst)<span class="sc">$</span>fixed</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">updateFormula</span>(<span class="at">datasetName =</span> <span class="st">'ebird'</span>,</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> <span class="sc">~</span> . <span class="sc">+</span> elevation_ebird)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">changeComponents</span>(<span class="at">addComponent =</span> </span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                                   <span class="st">'elevation_ebird(main = elevation, model = "linear")'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Model components:
+~-1 + ebird_spatial(main = geometry, model = ebird_field) + BBA_spatial(main = geometry, 
+    copy = "ebird_spatial", hyper = list(beta = list(fixed = FALSE))) + 
+    BBS_spatial(main = geometry, copy = "ebird_spatial", hyper = list(beta = list(fixed = FALSE))) + 
+    ebird_intercept(1) + BBA_intercept(1) + BBS_intercept(1) + 
+    elevation(main = elevation, model = "linear", mean.linear = -5, 
+        prec.linear = 10) + ebird_biasField(main = geometry, 
+    model = ebird_bias_field) + Fixed__Effects__Comps(main = ~elevation + 
+    canopy + elevation_ebird - 1, model = "fixed") + elevation_ebird(main = elevation, 
+    model = "linear")
+&lt;environment: 0x133ffdc90&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>caerulescensEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">options =</span> modelOptions)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(caerulescensEst)<span class="sc">$</span>fixed</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Summary of 'modISDM' object:
 
 inlabru version: 2.10.1
-INLA version: 24.06.04
+INLA version: 24.06.27
 
 Types of data modelled:
                                     
@@ -410,11 +424,12 @@ BBS                  Present absence</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                  mean    sd 0.025quant 0.5quant 0.975quant   mode kld
-ebird_intercept -4.589 0.229     -5.037   -4.589     -4.141 -4.589   0
-BBA_intercept   -3.753 0.133     -4.013   -3.753     -3.493 -3.753   0
-BBS_intercept   -3.321 0.235     -3.782   -3.321     -2.859 -3.321   0
-elevation        1.541 0.072      1.400    1.541      1.682  1.541   0
-canopy           2.137 0.082      1.977    2.137      2.298  2.137   0</code></pre>
+ebird_intercept -4.571 0.229     -5.019   -4.571     -4.123 -4.571   0
+BBA_intercept   -3.839 0.134     -4.102   -3.839     -3.575 -3.839   0
+BBS_intercept   -3.303 0.235     -3.765   -3.303     -2.842 -3.303   0
+elevation        0.791 2.225     -3.570    0.791      5.153  0.791   0
+canopy           2.185 0.083      2.023    2.185      2.347  2.185   0
+elevation_ebird  0.791 2.225     -3.570    0.791      5.153  0.791   0</code></pre>
 </div>
 </div>
 <p>This model might seem slightly strange: we have elevation as a process model, but also in one of the observation models. We can do this in this case because we have multiple data sets: the information about the effect of elevation on the actual distribution come from the other data sets.</p>
@@ -427,9 +442,10 @@ canopy           2.137 0.082      1.977    2.137      2.298  2.137   0</code></p
 </ul>
 <section id="block-cross-validation" class="level6">
 <h6 class="anchored" data-anchor-id="block-cross-validation">Block Cross validation</h6>
-<p><code>.$spatialBlock</code> is used to set up spatial blocked cross-validation for the model by assigning each point in the datasets a block based on where the point is located spatially. For this example, we chose four blocks (<code>k=2</code>) for our model, based around a 2x2 grid (<code>rows = 2, cols = 2</code>). See the figure below for an illustration of the spatial block: the amount of data within each block appears reasonably equal.</p>
+<p><code>.$spatialBlock</code> is used to set up spatial blocked cross-validation for the model by assigning each point in the datasets a block based on where the point is located spatially. For this example, we chose four blocks (<code>k=4</code>) for our model, based around a 2x2 grid (<code>rows = 4, cols = 2</code>). See the figure below for an illustration of the spatial block: the amount of data within each block appears reasonably equal.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">5</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>), <span class="at">plot =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">4</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">2</span>), <span class="at">hexagon =</span> <span class="cn">FALSE</span>, <span class="at">plot =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>                               <span class="at">seed =</span> <span class="dv">2</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -438,29 +454,30 @@ canopy           2.137 0.082      1.977    2.137      2.298  2.137   0</code></p
 </div>
 </div>
 </div>
-<p>The blocked model may then be estimated with <code>blockedCV</code>. Note that this will estimate <code>k</code> models, so it may take a while to complete. Plus, with this ecample it falls apart.</p>
+<p>The blocked model may then be estimated with <code>blockedCV</code>. Note that this will estimate <code>k</code> models, so it may take a while to complete. Plus, with this example it falls apart.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this gives lots of warnings</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>spatialBlocked <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> caerulescensModel, </span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">options =</span> modelOptions)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>spatialBlocked</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this gives lots of warnings</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>spatialBlocked <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> caerulescensModel, </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">options =</span> modelOptions)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>spatialBlocked</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>More so, we can compare the cross-validation score from this model to one without the shared spatial effect (specified with <code>pointsSpatial = FALSE</code> in <code>startISDM</code>).</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>caerulescens_no_fields <span class="ot">&lt;-</span> <span class="fu">startISDM</span>(SetohagaData<span class="sc">$</span>Setophaga_caerulescens, </span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Boundary =</span> PA, <span class="co"># a polygon of the boundary</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Projection =</span> proj, <span class="co"># the geographical projection</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Mesh =</span> mesh, <span class="co"># the mesh, which we have just made</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>                          <span class="at">responsePA =</span> <span class="st">'NPres'</span>, <span class="co"># Name of response for binomial data</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>                          <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, <span class="co"># Name of no. of trials for binomial data</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>                          <span class="at">spatialCovariates =</span> covariates, <span class="co"># Environmental covariates</span></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Formulas =</span> <span class="fu">list</span>(<span class="at">covariateFormula =</span> <span class="sc">~</span> elevation <span class="sc">+</span> canopy)</span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>caerulescens_no_fields_model <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescens_no_fields)</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>caerulescens_no_fields<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">2</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>), <span class="at">plot =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>caerulescens_no_fields <span class="ot">&lt;-</span> <span class="fu">startISDM</span>(SetohagaData<span class="sc">$</span>Setophaga_caerulescens, </span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>                          <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>, <span class="co">#no spatial effect</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Boundary =</span> PA, <span class="co"># a polygon of the boundary</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Projection =</span> proj, <span class="co"># the geographical projection</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Mesh =</span> mesh, <span class="co"># the mesh, which we have just made</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>                          <span class="at">responsePA =</span> <span class="st">'NPres'</span>, <span class="co"># Name of response for binomial data</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>                          <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, <span class="co"># Name of no. of trials for binomial data</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>                          <span class="at">spatialCovariates =</span> covariates, <span class="co"># Environmental covariates</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>                          <span class="at">Formulas =</span> <span class="fu">list</span>(<span class="at">covariateFormula =</span> <span class="sc">~</span> elevation <span class="sc">+</span> canopy)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>caerulescens_no_fields_model <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescens_no_fields)</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>caerulescens_no_fields<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">4</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">2</span>), <span class="at">hexagon =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">plot =</span> <span class="cn">TRUE</span>, <span class="at">seed =</span> <span class="dv">2</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -468,19 +485,21 @@ canopy           2.137 0.082      1.977    2.137      2.298  2.137   0</code></p
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>spatialBlocked_no_fields <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> caerulescens_no_fields, </span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">options =</span> modelOptions)</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>spatialBlocked_no_fields</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>spatialBlocked_no_fields <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> caerulescens_no_fields, </span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">options =</span> modelOptions)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>spatialBlocked_no_fields</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Spatial block cross-validation score:
 
 Formula: ~Fixed__Effects__Comps + ebird_intercept + BBA_intercept + BBS_intercept
 
        mean.deviance     p.eff       dic
-fold 1      3310.500 -19811.11 -16500.61
-fold 2      3906.921 -30024.47 -26117.55
+fold 1      5454.250 -40797.16 -35342.91
+fold 2      5213.807 -34278.31 -29064.51
+fold 3      5369.208 -35593.44 -30224.23
+fold 4      5465.379 -42290.31 -36824.93
 
-mean DIC score: -21309.08</code></pre>
+mean DIC score: -32864.14</code></pre>
 </div>
 </div>
 <p>Based on the DIC scores, we conclude that the model with the shared spatial field provides a better fit of the data.</p>
@@ -488,24 +507,24 @@ mean DIC score: -21309.08</code></pre>
 </section>
 <section id="validation-by-data-set" class="level5">
 <h5 class="anchored" data-anchor-id="validation-by-data-set">Validation by Data set</h5>
-<p>We can also try validation by dropping a data set, fitting to the model to the other data sets and then using the dropped data set to valilate the model. We can use the <code>datasetOut()</code> function to do this.</p>
+<p>We can also try validation by dropping a data set, fitting to the model to the other data sets and then using the dropped data set to validate the model. We can use the <code>datasetOut()</code> function to do this.</p>
 <p>By setting <code>predictions = TRUE</code> we are able to calculate some cross-validation score by leaving out the selected dataset, but using the predicted values as an offset in a new model, and then finding the difference between the marginal-likelihood of the full model (i.e the model with all the datasets considered) and the marginal-likelihood of the offset model.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>dataset_out <span class="ot">&lt;-</span> <span class="fu">datasetOut</span>(<span class="at">model =</span> caerulescensEst,</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>                          <span class="at">dataset =</span> <span class="st">"BBA"</span>,</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">predictions =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>dataset_out</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>dataset_out <span class="ot">&lt;-</span> <span class="fu">datasetOut</span>(<span class="at">model =</span> caerulescensEst,</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>                          <span class="at">dataset =</span> <span class="st">"BBA"</span>,</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">predictions =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>dataset_out</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Changes in fixed values by leaving out BBA:
 
-                     mean         sd 0.025quant  0.5quant 0.975quant      mode
-ebird_intercept  2.215983 0.07489004   2.069202  2.215983   2.362765  2.215983
-BBS_intercept   -2.699511 0.09341408  -2.882600 -2.699511  -2.516423 -2.699511
-                kld
-ebird_intercept   0
-BBS_intercept     0
+                      mean         sd 0.025quant   0.5quant 0.975quant
+ebird_intercept  0.4540515  0.8291217 -1.1709972  0.4540515   2.079100
+BBS_intercept   -0.7359376 -0.1352846 -0.4707847 -0.7359376  -1.001091
+                      mode           kld
+ebird_intercept  0.4540515  1.888453e-16
+BBS_intercept   -0.7359376 -1.683038e-15
 
-Leave-one-out cross-validation score: -214.7811</code></pre>
+Leave-one-out cross-validation score: -141.0015</code></pre>
 </div>
 </div>
 <p>Note that this is not stable, thanks to the mesh.</p>
@@ -525,21 +544,22 @@ Leave-one-out cross-validation score: -214.7811</code></pre>
 </ol>
 <p>We will help you with the first couple of steps. Here is the first model for the magnolia</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>magnoliaData <span class="ot">&lt;-</span> SetohagaData<span class="sc">$</span>Setophaga_magnolia</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>magnoliaModel <span class="ot">&lt;-</span> <span class="fu">startISDM</span>(SetohagaData<span class="sc">$</span>Setophaga_magnolia, <span class="co"># the data</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Boundary =</span> PA, <span class="co"># a polygon of the boundary</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Projection =</span> proj, <span class="co"># the geographical projection</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Mesh =</span> mesh, <span class="co"># the mesh, which we have just made</span></span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>                               <span class="at">responsePA =</span> <span class="st">'NPres'</span>, <span class="co"># Name of response for binomial data</span></span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>                               <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, <span class="co"># Name of no. of trials for binomial data</span></span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>                               <span class="at">spatialCovariates =</span> covariates <span class="co"># Environmental covariates</span></span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>magnoliaEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> magnoliaModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co"># we will use this soon</span></span>
-<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">5</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>), <span class="at">plot =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>magnoliaData <span class="ot">&lt;-</span> SetohagaData<span class="sc">$</span>Setophaga_magnolia</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>magnoliaModel <span class="ot">&lt;-</span> <span class="fu">startISDM</span>(SetohagaData<span class="sc">$</span>Setophaga_magnolia, <span class="co"># the data</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Boundary =</span> PA, <span class="co"># a polygon of the boundary</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Projection =</span> proj, <span class="co"># the geographical projection</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Mesh =</span> mesh, <span class="co"># the mesh, which we have just made</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>                               <span class="at">responsePA =</span> <span class="st">'NPres'</span>, <span class="co"># Name of response for binomial data</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>                               <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, <span class="co"># Name of no. of trials for binomial data</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>                               <span class="at">spatialCovariates =</span> covariates <span class="co"># Environmental covariates</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>magnoliaEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> magnoliaModel, <span class="at">options =</span> modelOptions)</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="co"># we will use this soon</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">4</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">2</span>), <span class="at">hexagon =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">plot =</span> <span class="cn">TRUE</span>, <span class="at">seed =</span> <span class="dv">2</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -551,21 +571,22 @@ Leave-one-out cross-validation score: -214.7811</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>If you want to see the code for S. fusca, it is here.</summary>
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>fuscaData <span class="ot">&lt;-</span> SetohagaData<span class="sc">$</span>Setophaga_fusca</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>fuscaModel <span class="ot">&lt;-</span> <span class="fu">startISDM</span>(SetohagaData<span class="sc">$</span>Setophaga_fusca, <span class="co"># the data</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Boundary =</span> PA, <span class="co"># a polygon of the boundary</span></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Projection =</span> proj, <span class="co"># the geographical projection</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Mesh =</span> mesh, <span class="co"># the mesh, which we have just made</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>                               <span class="at">responsePA =</span> <span class="st">'NPres'</span>, <span class="co"># Name of response for binomial data</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>                               <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, <span class="co"># Name of no. of trials for binomial data</span></span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>                               <span class="at">spatialCovariates =</span> covariates <span class="co"># Environmental covariates</span></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>fuscaEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> fuscaModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="co"># we will use this soon</span></span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">5</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>), <span class="at">plot =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>fuscaData <span class="ot">&lt;-</span> SetohagaData<span class="sc">$</span>Setophaga_fusca</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>fuscaModel <span class="ot">&lt;-</span> <span class="fu">startISDM</span>(SetohagaData<span class="sc">$</span>Setophaga_fusca, <span class="co"># the data</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Boundary =</span> PA, <span class="co"># a polygon of the boundary</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Projection =</span> proj, <span class="co"># the geographical projection</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>                               <span class="at">Mesh =</span> mesh, <span class="co"># the mesh, which we have just made</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>                               <span class="at">responsePA =</span> <span class="st">'NPres'</span>, <span class="co"># Name of response for binomial data</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>                               <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, <span class="co"># Name of no. of trials for binomial data</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>                               <span class="at">spatialCovariates =</span> covariates <span class="co"># Environmental covariates</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>fuscaEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> fuscaModel, <span class="at">options =</span> modelOptions)</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a><span class="co"># we will use this soon</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">spatialBlock</span>(<span class="at">k =</span> <span class="dv">4</span>, <span class="at">rows_cols =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">2</span>), <span class="at">hexagon =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">plot =</span> <span class="cn">TRUE</span>, <span class="at">seed =</span> <span class="dv">2</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -581,12 +602,12 @@ Leave-one-out cross-validation score: -214.7811</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Well, are they?</summary>
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">updateFormula</span>(???, </span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> . <span class="sc">~</span> . <span class="sc">+</span> <span class="fu">I</span>(elevation<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>magnoliaEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">options =</span> modelOptions)</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(magnoliaEst)<span class="sc">$</span>fixed</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">updateFormula</span>(???, </span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> . <span class="sc">~</span> . <span class="sc">+</span> <span class="fu">I</span>(elevation<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>magnoliaEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">options =</span> modelOptions)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(magnoliaEst)<span class="sc">$</span>fixed</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <ol start="2" type="1">
@@ -595,95 +616,91 @@ Leave-one-out cross-validation score: -214.7811</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Here is the code for the Magnolia analysis</summary>
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># first do the block CV on the original model</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>magnoliaBlocked <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> magnoliaModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co"># now add the spatial bias term</span></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">help</span>() <span class="co"># use this to see what data sets are available, and what their names are</span></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Documentation for specifyISDM:</span></span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">addBias</span>(<span class="at">datasetNames =</span> <span class="st">'ebird'</span>)</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Turning copyModel off since the number of datasets specified is less than 2.</span></span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Bias =</span> <span class="cn">TRUE</span>, <span class="co"># Change the prior</span></span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>),</span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))</span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>magnoliaEstBias <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> magnoliaModel, </span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">options =</span> modelOptions)</span>
-<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>magnoliaBlockedBias <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> magnoliaModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>magnoliaBlocked</span>
-<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
-<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept</span></span>
-<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      3706.224 -45585.14 -41878.92</span></span>
-<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      2324.868 -37948.44 -35623.57</span></span>
-<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4644.431 -40292.80 -35648.37</span></span>
-<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4386.498 -50274.28 -45887.79</span></span>
-<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 5      4579.271 -53463.67 -48884.40</span></span>
-<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -41584.61</span></span>
-<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a>magnoliaBlockedBias</span>
-<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
-<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept + ebird_biasField</span></span>
-<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      3701.231 -45580.54 -41879.31</span></span>
-<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      2346.440 -37924.83 -35578.39</span></span>
-<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4629.531 -40268.98 -35639.44</span></span>
-<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4369.814 -50268.98 -45899.17</span></span>
-<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 5      4578.782 -53463.38 -48884.59</span></span>
-<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb32-42"><a href="#cb32-42" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -41576.18</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># first do the block CV on the original model</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>magnoliaBlocked <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> magnoliaModel, <span class="at">options =</span> modelOptions)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="co"># now add the spatial bias term</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">help</span>() <span class="co"># use this to see what data sets are available, and what their names are</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Documentation for specifyISDM:</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">addBias</span>(<span class="at">datasetNames =</span> <span class="st">'ebird'</span>)</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Turning copyModel off since the number of datasets specified is less than 2.</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Bias =</span> <span class="cn">TRUE</span>, <span class="co"># Change the prior</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>),</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>magnoliaEstBias <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> magnoliaModel, </span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">options =</span> modelOptions)</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>magnoliaBlockedBias <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> magnoliaModel, <span class="at">options =</span> modelOptions)</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>magnoliaBlocked</span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept</span></span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      2981.689 -48110.30 -45128.61</span></span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      3760.890 -42180.02 -38419.13</span></span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      3915.457 -39897.50 -35982.04</span></span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4267.111 -39662.98 -35395.87</span></span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -38731.41</span></span>
+<span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a>magnoliaBlockedBias</span>
+<span id="cb34-30"><a href="#cb34-30" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
+<span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb34-32"><a href="#cb34-32" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept + ebird_biasField</span></span>
+<span id="cb34-33"><a href="#cb34-33" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb34-34"><a href="#cb34-34" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
+<span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      2981.452 -48109.79 -45128.33</span></span>
+<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      3751.117 -42175.75 -38424.63</span></span>
+<span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      3917.379 -39868.03 -35950.65</span></span>
+<span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4231.019 -39601.04 -35370.03</span></span>
+<span id="cb34-39"><a href="#cb34-39" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -38718.41</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell">
 <details class="code-fold">
 <summary>Here is the code for the fusca analysis</summary>
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># first do the block CV on the original model</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>fuscaBlocked <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> fuscaModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="co"># now add the spatial bias term</span></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">help</span>() <span class="co"># use this to see what data sets are available, and what their names are</span></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Documentation for specifyISDM:</span></span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">addBias</span>(<span class="at">datasetNames =</span> <span class="st">'ebird'</span>)</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Turning copyModel off since the number of datasets specified is less than 2.</span></span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Bias =</span> <span class="cn">TRUE</span>, <span class="co"># Change the prior</span></span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>),</span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>fuscaEstBias <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> fuscaModel, </span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">options =</span> modelOptions)</span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>fuscaBlockedBias <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> fuscaModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>fuscaBlocked</span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept</span></span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      3884.567 -24981.87 -21097.30</span></span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      5257.868 -31468.55 -26210.68</span></span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      5265.238 -34078.79 -28813.55</span></span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      2882.102 -21276.55 -18394.45</span></span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 5      4819.689 -30960.26 -26140.57</span></span>
-<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -24131.31</span></span>
-<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>fuscaBlockedBias</span>
-<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
-<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept + ebird_biasField</span></span>
-<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      3884.266 -24981.75 -21097.48</span></span>
-<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      5017.850 -31469.69 -26451.84</span></span>
-<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      5034.978 -34014.32 -28979.34</span></span>
-<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      3272.840 -19641.34 -16368.50</span></span>
-<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 5      4653.683 -30871.80 -26218.12</span></span>
-<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -23823.06</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># first do the block CV on the original model</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>fuscaBlocked <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> fuscaModel, <span class="at">options =</span> modelOptions)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co"># now add the spatial bias term</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">help</span>() <span class="co"># use this to see what data sets are available, and what their names are</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Documentation for specifyISDM:</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">addBias</span>(<span class="at">datasetNames =</span> <span class="st">'ebird'</span>)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Turning copyModel off since the number of datasets specified is less than 2.</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>fuscaModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Bias =</span> <span class="cn">TRUE</span>, <span class="co"># Change the prior</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>),</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>fuscaEstBias <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> fuscaModel, </span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">options =</span> modelOptions)</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>fuscaBlockedBias <span class="ot">&lt;-</span> <span class="fu">blockedCV</span>(<span class="at">data =</span> fuscaModel, <span class="at">options =</span> modelOptions)</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>fuscaBlocked</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept</span></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      4084.616 -26587.23 -22502.61</span></span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      4564.772 -29409.09 -24844.32</span></span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4330.338 -23661.76 -19331.42</span></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      3594.437 -27235.25 -23640.81</span></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -22579.79</span></span>
+<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a>fuscaBlockedBias</span>
+<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
+<span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept + ebird_biasField</span></span>
+<span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
+<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      4019.780 -26525.35 -22505.57</span></span>
+<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      4354.808 -29320.65 -24965.84</span></span>
+<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4170.252 -23622.38 -19452.13</span></span>
+<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      3463.151 -27137.96 -23674.81</span></span>
+<span id="cb35-39"><a href="#cb35-39" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -22649.59</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <details>

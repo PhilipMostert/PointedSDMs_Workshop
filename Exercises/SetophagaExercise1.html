@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Bob O’Hara">
-<meta name="dcterms.date" content="2024-06-27">
+<meta name="dcterms.date" content="2024-07-10">
 
 <title>SetophagaExercise</title>
 <style>
@@ -118,7 +118,7 @@ div.csl-indent {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 27, 2024</p>
+      <p class="date">July 10, 2024</p>
     </div>
   </div>
   
@@ -154,8 +154,9 @@ div.csl-indent {
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github(‘PhilipMostert/PointedSDMs@main’)</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(PointedSDMs)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(INLA)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggmap)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Additional objects required by <em>PointedSDMs</em> and the <em>R-INLA</em> <span class="citation" data-cites="martins2013bayesian">(<a href="#ref-martins2013bayesian" role="doc-biblioref">Martins et al. 2013</a>)</span> and <em>inlabru</em> <span class="citation" data-cites="bachl2019inlabru">(<a href="#ref-bachl2019inlabru" role="doc-biblioref">Bachl et al. 2019</a>)</span> packages need to be assembled.</p>
 <p>An <em>sf</em> object of Pennsylvania (obtained using the <em>USAboundaries</em> <span class="citation" data-cites="USABoundaries">(<a href="#ref-USABoundaries" role="doc-biblioref">rOpenSci 2018</a>)</span> package) is the first of these objects required, and it will be used to construct an <em>inla.mesh</em> object as well as help with the plotting of graphics. In order to create one of these polygons objects, we are first required to define the projection reference system.</p>
@@ -163,7 +164,7 @@ div.csl-indent {
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># if you need to download the package, you have to get it from GitHub</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("ropensci/USAboundaries")</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>proj <span class="ot">&lt;-</span> <span class="st">"+proj=utm +zone=17 +datum=WGS84 +units=km"</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>PA <span class="ot">&lt;-</span> USAboundaries<span class="sc">::</span><span class="fu">us_states</span>(<span class="at">states =</span> <span class="st">"Pennsylvania"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>PA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">'Data/PA.rds'</span>))</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>PA <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(PA, proj)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we want our data for all three species. We have already downloaded it for you. We reformat it slightly, so each species is in a separate list element. Later we will look at multi-species models.</p>
@@ -314,7 +315,7 @@ div.csl-indent {
 <pre><code>Summary of 'modISDM' object:
 
 inlabru version: 2.10.1
-INLA version: 24.06.04
+INLA version: 24.06.27
 
 Types of data modelled:
                                     
@@ -324,11 +325,11 @@ BBS                  Present absence</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                  mean    sd 0.025quant 0.5quant 0.975quant   mode kld
-elevation        2.451 0.086      2.283    2.451      2.620  2.451   0
-canopy           1.339 0.060      1.222    1.339      1.456  1.339   0
-ebird_intercept -4.688 0.195     -5.071   -4.688     -4.306 -4.688   0
-BBA_intercept   11.771 1.506      8.820   11.771     14.722 11.771   0
-BBS_intercept   -3.259 0.143     -3.539   -3.259     -2.978 -3.259   0</code></pre>
+elevation        2.507 0.086      2.338    2.507      2.676  2.507   0
+canopy           1.359 0.060      1.241    1.359      1.476  1.359   0
+ebird_intercept -4.672 0.195     -5.053   -4.672     -4.291 -4.672   0
+BBA_intercept   11.956 1.512      8.992   11.956     14.919 11.956   0
+BBS_intercept   -3.254 0.144     -3.536   -3.254     -2.973 -3.254   0</code></pre>
 </div>
 </div>
 <p>The intercepts are generally less important: they are largely driven by the sampling intensity. The canopy and elevation effects are more interesting, and suggest the Black-throated blue warbler prefers to be high up in a canopy.</p>

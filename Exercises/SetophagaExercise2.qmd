@@ -25,6 +25,7 @@ The first step in our analysis is to load in the packages required.
 ##Install if need be: you will need v2.0
 # devtools::install_github(‘PhilipMostert/PointedSDMs@main’)
 library(PointedSDMs)
+library(ggplot2)
 library(INLA)
 library(here)
 library(terra)
@@ -188,7 +189,7 @@ We can add and modify spatial terms with `.$specifySpatial`. For example, if we 
 
 caerulescensModel$specifySpatial(sharedSpatial = TRUE,
                                  prior.sigma = c(1, 0.1),  # P(sigma > 1) = 0.1
-                                 prior.range = c(1, 0.1)) # P(range < 15) = 0.1
+                                 prior.range = c(1, 0.1)) # P(range < 1) = 0.1
 caerulescensEst <- fitISDM(data = caerulescensModel)
 ```
 
@@ -234,7 +235,7 @@ We can also change the model of the observation process for each data set, or sh
 
 ## Spatial bias
 
-A well known problem with people is that they don't collect data according to well designed experimental protocols. With citizen science data, such as eBird, we want to correct for spatial biases in where people collect. We can add covaraites to model this bias, but here we will model the bias with a spatial field, something which seems to work surprisingly well [@simmonds2020more]. We can add it to the model like this:
+A well known problem with people is that they don't collect data according to well designed experimental protocols. With citizen science data, such as eBird, we want to correct for spatial biases in where people collect. We can add covariates to model this bias, but here we will model the bias with a spatial field, something which seems to work surprisingly well [@simmonds2020more]. We can add it to the model like this:
 
 First we add a bias field, with `$addBias()`. We could fit the model at that point, but then we change the prior to a PC prior.
 
@@ -284,11 +285,12 @@ This model might seem slightly strange: we have elevation as a process model, bu
 
 ###### Block Cross validation
 
-`.$spatialBlock` is used to set up spatial blocked cross-validation for the model by assigning each point in the datasets a block based on where the point is located spatially. For this example, we chose four blocks (`k=4`) for our model, based around a 2x2 grid (`rows = 2, cols = 2`). See the figure below for an illustration of the spatial block: the amount of data within each block appears reasonably equal.
+`.$spatialBlock` is used to set up spatial blocked cross-validation for the model by assigning each point in the datasets a block based on where the point is located spatially. For this example, we chose four blocks (`k=4`) for our model, based around a 2x2 grid (`rows = 4, cols = 2`). See the figure below for an illustration of the spatial block: the amount of data within each block appears reasonably equal.
 
 ```{r spatialBlock, warning = FALSE, message = FALSE,  fig.width=8, fig.height=5}
 
-caerulescensModel$spatialBlock(k = 4, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+caerulescensModel$spatialBlock(k = 4, rows_cols = c(4, 2), hexagon = FALSE, plot = TRUE,
+                               seed = 2) + theme_bw()
 
 ```
 
@@ -318,7 +320,8 @@ caerulescens_no_fields <- startISDM(SetohagaData$Setophaga_caerulescens,
 
 caerulescens_no_fields_model <- fitISDM(data = caerulescens_no_fields)
 
-caerulescens_no_fields$spatialBlock(k = 4, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+caerulescens_no_fields$spatialBlock(k = 4, rows_cols = c(4, 2), hexagon = FALSE,
+                                    plot = TRUE, seed = 2) + theme_bw()
 
 spatialBlocked_no_fields <- blockedCV(data = caerulescens_no_fields, 
                                       options = modelOptions)
@@ -377,7 +380,8 @@ magnoliaModel <- startISDM(SetohagaData$Setophaga_magnolia, # the data
 magnoliaEst <- fitISDM(data = magnoliaModel, options = modelOptions)
 
 # we will use this soon
-magnoliaModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+magnoliaModel$spatialBlock(k = 4, rows_cols = c(4, 2), hexagon = FALSE,
+                                    plot = TRUE, seed = 2) + theme_bw()
 
 
 ```
@@ -402,7 +406,8 @@ fuscaModel <- startISDM(SetohagaData$Setophaga_fusca, # the data
 fuscaEst <- fitISDM(data = fuscaModel, options = modelOptions)
 
 # we will use this soon
-fuscaModel$spatialBlock(k = 5, rows_cols = c(2, 2), plot = TRUE) + theme_bw()
+fuscaModel$spatialBlock(k = 4, rows_cols = c(4, 2), hexagon = FALSE,
+                                    plot = TRUE, seed = 2) + theme_bw()
 
 
 ```
