@@ -1,6 +1,6 @@
 ---
 title: 'Presentation 2:'
-subtitle: "Introduction to *PointedSDMs*\n\n'ISEC 2024 -- Swansea'"
+subtitle: "Introduction to *PointedSDMs*\n\nISEC 2024 -- Swansea"
 author: 'Philip Mostert'
 institute: 'Norwegian University of Science and Technology'
 date: '13 July 2024'
@@ -239,8 +239,8 @@ plot(caerulescensPredictions, variable = c('mean', 'sd'))
 
 -   Pull *Github* repository: *PhilipMostert/PointedSDMs_Workshop.*
 
--   We will through *Vignette 1: Basic model* together.
+-   We will through *Vignette 2: Basic model* together.
 
-## References 
+## References
 
 \tiny
