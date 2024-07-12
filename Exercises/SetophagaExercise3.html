@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ron R Togunov, Philip Mostert, Bob O’Hara">
-<meta name="dcterms.date" content="2024-07-10">
+<meta name="dcterms.date" content="2024-07-12">
 
 <title>Multi-Species Integrated Species Distribution Modeling Workshop</title>
 <style>
@@ -127,7 +127,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 10, 2024</p>
+      <p class="date">July 12, 2024</p>
     </div>
   </div>
   
@@ -145,166 +145,56 @@ window.Quarto = {
 <p>This workshop aims to guide you through the process of setting up and interpreting multi-species iSDMs using the <code>PointedSDMs</code> package. We’ll explore various modeling approaches and discuss their ecological implications.</p>
 </section>
 <section id="setophaga-example" class="level1">
-<h1><em>Setophaga</em> Example</h1>
-<p>In this workshop, we’ll focus on predicting the distribution of three <em>Setophaga</em> warbler species across Pennsylvania, USA. These species are:</p>
-<ul>
-<li><em>Setophaga fusca</em> (Blackburnian Warbler)</li>
-<li><em>Setophaga caerulescens</em> (Black-throated Blue Warbler)</li>
-<li><em>Setophaga magnolia</em> (Magnolia Warbler)</li>
-</ul>
-<p>We’ll use data from three different sources, each with its own strengths and potential biases:</p>
-<ul>
-<li>eBird: A citizen science project, providing extensive data but potentially biased towards accessible areas and popular birding spots.</li>
-<li>North American Breeding Bird Survey (BBS): A standardized survey, providing consistent sampling but limited in spatial coverage.</li>
-<li>Pennsylvania Breeding Bird Atlas (BBA): A comprehensive survey, but conducted over a longer time period.</li>
-</ul>
-<p>We’ll also incorporate environmental covariates to help explain species distributions:</p>
-<ul>
-<li>Elevation: Which can influence temperature, precipitation, and vegetation types.</li>
-<li>Canopy cover: As a proxy for forest habitat, which is important for these woodland warblers.</li>
-<li>Coniferous forest cover:</li>
-</ul>
-<p>By combining these diverse data sources and environmental information, we aim to create a comprehensive model of warbler distributions in Pennsylvania.</p>
-<section id="model-preparations" class="level2">
-<h2 class="anchored" data-anchor-id="model-preparations">Model Preparations</h2>
+<h1><em>Setophaga</em> example</h1>
+<section id="data-preparations" class="level2">
+<h2 class="anchored" data-anchor-id="data-preparations">Data Preparations</h2>
+<p>We will use the same data as in the previous vignette with three species (<em>Setophaga fusca</em>, <em>Setophaga caerulescens</em>, and <em>Setophaga magnolia</em>) obtained from three datasets (eBird, BBS, and BBA) as well as two covariates (elevation and canopy cover).</p>
 <p>First, let’s load the required packages and prepare our data:</p>
-</section>
-<section id="visualizing-covariate-interpolation" class="level2">
-<h2 class="anchored" data-anchor-id="visualizing-covariate-interpolation">Visualizing Covariate Interpolation</h2>
-<p>Before we build our models, it’s crucial to understand how our environmental covariates are represented across the study area. The following code creates visualizations of our elevation and canopy cover data:</p>
+<p>To speed things up for the workshop, we will model just two of the three species.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(geometry)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Matrix)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyterra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>
-Attaching package: 'tidyterra'</code></pre>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>SetophagaData <span class="ot">&lt;-</span> <span class="fu">map</span>(SetophagaData_full, \(.x) <span class="fu">filter</span>(.x, Species_name <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Setophaga_caerulescens"</span>, <span class="st">"Setophaga_magnolia"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>The following object is masked from 'package:stats':
-
-    filter</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># project covs to project proj</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>covs <span class="ot">&lt;-</span> <span class="fu">project</span>(<span class="fu">aggregate</span>(covariates,<span class="dv">8</span>,<span class="at">na.rm=</span><span class="cn">TRUE</span>), proj)  </span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract mesh vertices</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>vertices <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(mesh<span class="sc">$</span>loc[, <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>])</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(vertices) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Assuming your covariates are stored in a SpatRaster object named `covariates`</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>elevation_values <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">extract</span>(covs[[<span class="st">"elevation"</span>]], vertices)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>canopy_values <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">extract</span>(covs[[<span class="st">"canopy"</span>]], vertices)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine the vertex coordinates with the extracted values</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>vertices<span class="sc">$</span>elevation <span class="ot">&lt;-</span> elevation_values[, <span class="dv">2</span>]</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>vertices<span class="sc">$</span>canopy <span class="ot">&lt;-</span> canopy_values[, <span class="dv">2</span>]</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert vertices to an sf object</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>vertices_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(vertices, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>), <span class="at">crs =</span> <span class="fu">st_crs</span>(covariates))</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the triangles of the mesh</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>triangles <span class="ot">&lt;-</span> mesh<span class="sc">$</span>graph<span class="sc">$</span>tv</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a grid of points over the study area for interpolation</span></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>ext <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">ext</span>(covs)</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>centers <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(<span class="fu">seq</span>(ext[<span class="dv">1</span>], ext[<span class="dv">2</span>],<span class="at">length.out=</span> <span class="dv">200</span>),<span class="fu">seq</span>(ext[<span class="dv">3</span>], ext[<span class="dv">4</span>],<span class="at">length.out=</span> <span class="dv">100</span>)) </span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(centers) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">'x'</span>,<span class="st">'y'</span>)</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to data.frame</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>centers_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(centers)</span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to sf object</span></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>study_area <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(centers_df, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>), <span class="at">crs =</span> <span class="fu">crs</span>(covs)) <span class="sc">%&gt;%</span> </span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># remove points outside of shape</span></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_crop</span>(PA)</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>grid_points <span class="ot">&lt;-</span> <span class="fu">st_coordinates</span>(study_area) </span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co"># replace NAs</span></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>vertices<span class="sc">$</span>elevation[<span class="fu">is.na</span>(vertices<span class="sc">$</span>elevation)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>vertices<span class="sc">$</span>canopy[<span class="fu">is.na</span>(vertices<span class="sc">$</span>canopy)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a><span class="do">##2D barycentric interpolation at points Xi for a function with values f measured at locations X</span></span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="co">#For N-D interpolation simply replace tsearch with tsearchn and modify the sparse matrix definition to have non-zero values in the right spots.</span></span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>interp.barycentric <span class="ot">&lt;-</span> <span class="cf">function</span>(X,f,Xi){</span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  dn <span class="ot">&lt;-</span> <span class="fu">delaunayn</span>(X)</span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>  tri <span class="ot">&lt;-</span> <span class="fu">tsearch</span>(X[,<span class="dv">1</span>],X[,<span class="dv">2</span>],dn,Xi[,<span class="dv">1</span>],Xi[,<span class="dv">2</span>],<span class="at">bary=</span>T)</span>
-<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>  <span class="co">#For each line in Xi, defines which points in X contribute to the interpolation</span></span>
-<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>  active <span class="ot">&lt;-</span> dn[tri<span class="sc">$</span>idx,]</span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Filter out NAs from tri$idx and active</span></span>
-<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>  valid_idx <span class="ot">&lt;-</span> <span class="fu">is.na</span>(tri<span class="sc">$</span>idx)</span>
-<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>  active[valid_idx, ] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>  tri<span class="sc">$</span>p[valid_idx, ] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Define the interpolation as a sparse matrix operation</span></span>
-<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>  M <span class="ot">&lt;-</span> <span class="fu">sparseMatrix</span>(<span class="at">i =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(Xi), <span class="at">each =</span> <span class="dv">3</span>), <span class="at">j =</span> <span class="fu">as.numeric</span>(<span class="fu">t</span>(active)), <span class="at">x =</span> <span class="fu">as.numeric</span>(<span class="fu">t</span>(tri<span class="sc">$</span>p)), <span class="at">dims =</span> <span class="fu">c</span>(<span class="fu">nrow</span>(Xi), <span class="fu">length</span>(f)))</span>
-<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>(M <span class="sc">%*%</span> f)</span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a><span class="co"># Interpolate elevation values</span></span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>interpolated_elevation <span class="ot">&lt;-</span> <span class="fu">interp.barycentric</span>(<span class="fu">as.matrix</span>(vertices[, <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)]), vertices<span class="sc">$</span>elevation, grid_points)</span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a><span class="co"># Interpolate canopy values</span></span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>interpolated_canopy <span class="ot">&lt;-</span> <span class="fu">interp.barycentric</span>(<span class="fu">as.matrix</span>(vertices[, <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)]), vertices<span class="sc">$</span>canopy, grid_points)</span>
-<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine the interpolated points with the values</span></span>
-<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>interpolated_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> grid_points[, <span class="dv">1</span>],</span>
-<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> grid_points[, <span class="dv">2</span>],</span>
-<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a>  <span class="at">elevation =</span> interpolated_elevation,</span>
-<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>  <span class="at">canopy =</span> interpolated_canopy</span>
-<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to sf object</span></span>
-<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a>interpolated_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(interpolated_df, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>), <span class="at">crs =</span> <span class="fu">st_crs</span>(covariates))</span>
-<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot interpolated elevation with regular tiles</span></span>
-<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(interpolated_df) <span class="sc">+</span></span>
-<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> elevation)) <span class="sc">+</span></span>
-<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Interpolated Elevation"</span>, <span class="at">fill =</span> <span class="st">"Elevation"</span>)</span>
-<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a>p1b <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_spatraster</span>(<span class="at">data =</span> covs<span class="sc">$</span>elevation)</span>
-<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot interpolated canopy with regular tiles</span></span>
-<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(interpolated_df) <span class="sc">+</span></span>
-<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> canopy)) <span class="sc">+</span></span>
-<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Interpolated Canopy"</span>, <span class="at">fill =</span> <span class="st">"Canopy"</span>)</span>
-<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a>p2b <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_spatraster</span>(<span class="at">data =</span> covs<span class="sc">$</span>canopy)</span>
-<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a><span class="co"># Display plots side by side</span></span>
-<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a>p1b <span class="sc">+</span> p1 <span class="sc">+</span> </span>
-<span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a>  p2b <span class="sc">+</span> p2 <span class="sc">&amp;</span> </span>
-<span id="cb4-85"><a href="#cb4-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>These visualizations help us understand the spatial patterns of our environmental covariates and how well they’re represented by our mesh structure. This is important because the accuracy of our species distribution predictions will depend partly on how well we capture environmental variation across the landscape.</p>
 </section>
 <section id="building-the-multi-species-model" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-multi-species-model">Building the Multi-Species Model</h2>
-<p>Now that we’ve prepared our data and visualized our covariates, we’re ready to set up our multi-species model. We use the <code>startSpecies</code> to initialise the multi-species ISDM. The argument <code>speciesName</code> is required, and it denotes the name of the species variable common across the datasets. Additional arguments include: <code>speciesSpatial</code> to control the type of spatial effect used for the species, <code>speciesIntercept</code> to control the intercept for the species and <code>speciesEnvironment</code> to control the environmental effects for the species (species-specific effects or shared across species).</p>
-<p>For this example, we use a <code>replicate</code> approach for the species spatial effects. This is also the default for <code>startSpecies</code>, in which each species gets its own spatial field and intercept, but they share hyperparameters. This allows for species-specific spatial patterns while still borrowing strength across species. We’ve also set <code>pointsSpatial = NULL</code> to simplify the model by not including dataset-specific spatial effects.</p>
+<p>Now that we’ve prepared our data, we’re ready to set up our multi-species model. One of the key decisions we have to make is in what information is shared across species (i.e., what parameters are shared among the species). Specifically, if our species <span class="math inline">\(i\)</span> intensity field <span class="math inline">\(\lambda_s(\bf{s})\)</span> is defined as:</p>
+<p><span class="math display">\[
+\lambda_i(\bf{s}) = \alpha_i + \zeta_i(\bf{s}) \\
+\zeta_i(\bf{s}) \sim N(0, \sigma_i^2),
+\]</span></p>
+<p>where <span class="math inline">\(\zeta_i(\bf{s})\)</span> is a species level spatial effect with covariance matrix <span class="math inline">\(\sigma^2_i\)</span>. We can share information in 3 ways using the argument <code>speciesSpatial</code>:</p>
+<ul>
+<li><strong><code>"share"</code></strong> share everything: <span class="math inline">\(\zeta_i(\bf{s}) = \zeta(\bf{s})\)</span>, in which the random field is the same across all species.</li>
+<li><strong><code>"replicate"</code></strong> share only the hyper-parameters: <span class="math inline">\(\sigma_i^2 = \sigma^2\)</span>, in which the intensities of the random field are different but the hyperparameters (i.e., range and sigma) are different.</li>
+<li><strong><code>"copy"</code></strong> share nothing: <span class="math inline">\(\zeta_i(\bf{s})\)</span> and <span class="math inline">\(\sigma_i^2\)</span> are all different, in which the both the intensities and the hyperparameters are independent across species.</li>
+</ul>
+<section id="shared-spatial-effect-speciesspatial-shared" class="level3">
+<h3 class="anchored" data-anchor-id="shared-spatial-effect-speciesspatial-shared">Shared spatial effect: <code>speciesSpatial = "shared"</code></h3>
+<p>We use the <code>startSpecies()</code> to initialise the multi-species ISDM. Many of the arguments are the same as in the <code>startISDM()</code> we used in the previous vignette. Additional arguments include: <code>speciesIntercept</code> to control the intercept for the species, <code>speciesEnvironment</code> to control the environmental effects for the species (species-specific effects or shared across species), and <code>speciesSpatial</code> to control what information in the spatial effect is shared across species.</p>
+<p>The simplest model we can construct assumes that all species occurrence emerge from a common distribution. This is achieved by defining the <code>speciesSpatial</code> argument as <code>"shared"</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>speciesModel <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, <span class="at">Boundary =</span> PA, </span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">Projection =</span> proj, <span class="at">Mesh =</span> mesh,</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">responsePA =</span> <span class="st">'NPres'</span>, </span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">trialsPA =</span> <span class="st">'Trials'</span>,  <span class="co"># Name of no. of trials for binomial data</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                      <span class="at">speciesSpatial =</span> <span class="st">"replicate"</span>,   <span class="co"># unique spatial field per species</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>,<span class="co"># Do not include a dataset spatial field</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>                      <span class="at">spatialCovariates =</span> covariates, </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                      <span class="at">speciesName =</span> <span class="st">'Species_name'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>speciesModelShared <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, <span class="at">Boundary =</span> PA, </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">Projection =</span> proj, <span class="at">Mesh =</span> mesh,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">responsePA =</span> <span class="st">'NPres'</span>, </span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">trialsPA =</span> <span class="st">'Trials'</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">spatialCovariates =</span> covariates, </span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">speciesName =</span> <span class="st">'Species_name'</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>, <span class="co"># Do not include a dataset spatial field</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">speciesSpatial =</span> <span class="st">"shared"</span>)   <span class="co"># unique spatial field per species</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Again, the output of this function is an <em>R6</em> object, and additional documentation from the function be be obtained using <code>?.$help()</code>.</p>
+<p>We’ve also set <code>pointsSpatial = NULL</code> to simplify the model by not including dataset-specific spatial effects.</p>
+<section id="model-specification" class="level4">
+<h4 class="anchored" data-anchor-id="model-specification">Model Specification</h4>
+<p>Again, the output of <code>speciesSpatial()</code> is an <em>R6</em> object, for which we can use the <code>?.$help()</code> slot function to view the other available slot functions and their documentationp</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>speciesModel<span class="sc">$</span><span class="fu">help</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>speciesModelShared<span class="sc">$</span><span class="fu">help</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Plotting the multi-species model, shows the distribution by species rather than by dataset as in the previous vignette.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>speciesModel<span class="sc">$</span><span class="fu">plot</span>() <span class="sc">+</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Plot of the species'</span>) <span class="sc">+</span> </span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>speciesModelShared<span class="sc">$</span><span class="fu">plot</span>() <span class="sc">+</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Plot of the species'</span>) <span class="sc">+</span> </span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -314,46 +204,43 @@ Attaching package: 'tidyterra'</code></pre>
 </div>
 </div>
 <p>The resulting plot shows the distribution of observations for each species. This gives us a first look at the data and can help identify potential sampling biases or differences in species ranges.</p>
-<section id="model-specification" class="level3">
-<h3 class="anchored" data-anchor-id="model-specification">Model Specification</h3>
 <p>As in the single-species model from the previous vignette, we can specify the priors for the fixed and random effects using <code>.$specifySpatial</code> , <code>.$priorsFixed</code> and <code>.$specifyRandom</code>. In <code>.$specifyRandom</code>, the argument <code>speciesGroup</code> is used to change the prior for the precision (inverse variance) of group model for the spatial effects, and <code>speciesIntercepts</code> is used to change the prior for the precision for the random intercept term. For both of these parameters, we choose <em>pc priors.</em></p>
-<p>Specify priors for spatial and random effects</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># hyper parameters of the spatial field (shared across species)</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>speciesModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Species =</span> <span class="cn">TRUE</span>,  <span class="co"># define same prior for the all species</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),  <span class="co"># SD of field variation; P(σ &gt; σ0)</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))  <span class="co"># range of spatial correlation; P(ρ &lt; ρ0)</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for intercept of datasets (common for all datasets and all species in the model)</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>speciesModel<span class="sc">$</span><span class="fu">priorsFixed</span>(<span class="at">Effect =</span> <span class="st">'Intercept'</span>,</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                         <span class="at">mean.linear =</span> <span class="dv">0</span>, </span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                         <span class="at">prec.linear =</span> <span class="fl">0.1</span>)</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for random effects (mesh nodes of spatial field and species intercepts)</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>speciesModel<span class="sc">$</span><span class="fu">specifyRandom</span>(</span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesGroup =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"iid"</span>, </span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>                      <span class="at">hyper =</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))),  <span class="co"># P(σ &gt; σ0)</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on the baseline species occurrence rate</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIntercepts =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">'pc.prec'</span>,</span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>                           <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))  <span class="co"># P(σ &gt; σ0)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># hyper parameters of the spatial field (shared across species)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>speciesModelShared<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Species =</span> <span class="cn">TRUE</span>,  <span class="co"># define same prior for the all species</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),  <span class="co"># SD of field variation; P(σ &gt; σ0)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))  <span class="co"># range of spatial correlation; P(ρ &lt; ρ0)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for intercept of datasets (common for all datasets and all species in the model)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>speciesModelShared<span class="sc">$</span><span class="fu">priorsFixed</span>(<span class="at">Effect =</span> <span class="st">'Intercept'</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                               <span class="at">mean.linear =</span> <span class="dv">0</span>, </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                               <span class="at">prec.linear =</span> <span class="fl">0.1</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for random effects (mesh nodes of spatial field and species intercepts)</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>speciesModelShared<span class="sc">$</span><span class="fu">specifyRandom</span>(</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesGroup =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"iid"</span>, </span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>                      <span class="at">hyper =</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))),  <span class="co"># P(σ &gt; σ0)</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on the baseline species occurrence rate</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIntercepts =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">'pc.prec'</span>,</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>                           <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))  <span class="co"># P(σ &gt; σ0)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Now, we can specify model options and fit the model:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>modelOptions <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">control.inla =</span> <span class="fu">list</span>(<span class="at">int.strategy =</span> <span class="st">'eb'</span>, <span class="at">diagonal =</span> <span class="fl">0.1</span>, <span class="at">cmin =</span> <span class="dv">0</span>), </span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">safe =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Species-specific spatial effects model</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>speciesEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># View summary of the estimated model</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesEst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>modelOptions <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">control.inla =</span> <span class="fu">list</span>(<span class="at">int.strategy =</span> <span class="st">'eb'</span>, <span class="at">diagonal =</span> <span class="fl">0.1</span>, <span class="at">cmin =</span> <span class="dv">0</span>), </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">safe =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Species-specific spatial effects model</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>speciesSharedEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesModelShared, <span class="at">options =</span> modelOptions)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># View summary of the estimated model</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesSharedEst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Summary of 'modSpecies' object:
 
-inlabru version: 2.10.1
-INLA version: 24.06.27
+inlabru version: 2.11.1
+INLA version: 24.05.10
 
 Types of data modelled:
                                     
@@ -364,112 +251,187 @@ BBS                  Present absence
 Summary of the fixed effects for the species:
 
 Summary for Setophaga_caerulescens:
-                                                 mean         sd  0.025quant
-Setophaga_caerulescens_elevation         0.5194823538 0.04957312  0.42232082
-Setophaga_caerulescens_canopy            0.3829562714 0.04017513  0.30421446
-Setophaga_caerulescens_random_intercept -0.0008509562 0.02927965 -0.05823801
-                                             0.5quant 0.975quant          mode
-Setophaga_caerulescens_elevation         0.5194823538  0.6166439  0.5194823538
-Setophaga_caerulescens_canopy            0.3829562714  0.4616981  0.3829562714
-Setophaga_caerulescens_random_intercept -0.0008509562  0.0565361 -0.0008509562
-                                                 kld
-Setophaga_caerulescens_elevation        2.156597e-15
-Setophaga_caerulescens_canopy           5.242041e-16
-Setophaga_caerulescens_random_intercept 2.198999e-16
+                                               mean         sd 0.025quant
+Setophaga_caerulescens_elevation         0.25604775 0.04215660  0.1734223
+Setophaga_caerulescens_canopy            0.26827028 0.03094295  0.2076232
+Setophaga_caerulescens_random_intercept -0.07750988 0.01191079 -0.1008546
+                                           0.5quant  0.975quant        mode kld
+Setophaga_caerulescens_elevation         0.25604775  0.33867317  0.25604775   0
+Setophaga_caerulescens_canopy            0.26827028  0.32891735  0.26827028   0
+Setophaga_caerulescens_random_intercept -0.07750988 -0.05416517 -0.07750988   0
 
 Summary for Setophaga_magnolia:
-                                            mean         sd  0.025quant
-Setophaga_magnolia_elevation        -0.231729004 0.05729567 -0.34402644
-Setophaga_magnolia_canopy            0.051191152 0.03195341 -0.01143637
-Setophaga_magnolia_random_intercept  0.002092058 0.02927581 -0.05528747
-                                        0.5quant  0.975quant         mode
-Setophaga_magnolia_elevation        -0.231729004 -0.11943156 -0.231729004
-Setophaga_magnolia_canopy            0.051191152  0.11381868  0.051191152
-Setophaga_magnolia_random_intercept  0.002092058  0.05947159  0.002092058
-                                             kld
-Setophaga_magnolia_elevation        1.161832e-16
-Setophaga_magnolia_canopy           0.000000e+00
-Setophaga_magnolia_random_intercept 0.000000e+00
-
-Summary for Setophaga_fusca:
-                                         mean         sd  0.025quant
-Setophaga_fusca_elevation         0.287961243 0.04584226  0.19811206
-Setophaga_fusca_canopy            0.226235963 0.03244618  0.16264261
-Setophaga_fusca_random_intercept -0.001240908 0.02927902 -0.05862672
-                                     0.5quant 0.975quant         mode
-Setophaga_fusca_elevation         0.287961243 0.37781042  0.287961243
-Setophaga_fusca_canopy            0.226235963 0.28982932  0.226235963
-Setophaga_fusca_random_intercept -0.001240908 0.05614491 -0.001240908
-                                          kld
-Setophaga_fusca_elevation        2.150838e-15
-Setophaga_fusca_canopy           0.000000e+00
-Setophaga_fusca_random_intercept 1.218554e-16</code></pre>
+                                          mean         sd 0.025quant   0.5quant
+Setophaga_magnolia_elevation        0.34059517 0.04308382 0.25615244 0.34059517
+Setophaga_magnolia_canopy           0.22407871 0.02941268 0.16643093 0.22407871
+Setophaga_magnolia_random_intercept 0.07750997 0.01191079 0.05416525 0.07750997
+                                    0.975quant       mode kld
+Setophaga_magnolia_elevation         0.4250379 0.34059517   0
+Setophaga_magnolia_canopy            0.2817265 0.22407871   0
+Setophaga_magnolia_random_intercept  0.1008547 0.07750997   0</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Time used:
-    Pre = 1.11, Running = 1.32, Post = 0.041, Total = 2.48 
+    Pre = 0.838, Running = 1.78, Post = 0.125, Total = 2.75 
 Random effects:
   Name    Model
     speciesShared SPDE2 model
    Species_name_intercepts IID model
 
 Model hyperparameters:
-                                          mean       sd 0.025quant 0.5quant
-Range for speciesShared                  87.25 8.52e+00     71.645    86.86
-Stdev for speciesShared                   1.06 5.50e-02      0.961     1.06
-Precision for Species_name_intercepts 18323.53 2.05e+05     32.992  1283.90
-                                      0.975quant  mode
-Range for speciesShared                 1.05e+02 86.10
-Stdev for speciesShared                 1.18e+00  1.06
-Precision for Species_name_intercepts   1.16e+05 47.47
+                                        mean      sd 0.025quant 0.5quant
+Range for speciesShared                86.58  13.507     63.964    85.24
+Stdev for speciesShared                 1.09   0.087      0.938     1.09
+Precision for Species_name_intercepts 181.23 125.366     48.487   148.22
+                                      0.975quant   mode
+Range for speciesShared                   116.99  82.09
+Stdev for speciesShared                     1.28   1.08
+Precision for Species_name_intercepts     513.60 102.51
 
-Deviance Information Criterion (DIC) ...............: -127708.17
-Deviance Information Criterion (DIC, saturated) ....: -128950.27
-Effective number of parameters .....................: -143630.10
+Deviance Information Criterion (DIC) ...............: -95628.02
+Deviance Information Criterion (DIC, saturated) ....: NA
+Effective number of parameters .....................: -106834.99
 
-Watanabe-Akaike information criterion (WAIC) ...: 48392.65
-Effective number of parameters .................: 15486.57
+Watanabe-Akaike information criterion (WAIC) ...: 30771.88
+Effective number of parameters .................: 9388.34
 
-Marginal log-Likelihood:  -80628.19 
+Marginal log-Likelihood:  -59399.12 
  is computed 
 Posterior summaries for the linear predictor and the fitted values are computed
 (Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
 </div>
 </div>
 </section>
-<section id="examining-species-specific-responses" class="level3">
-<h3 class="anchored" data-anchor-id="examining-species-specific-responses">Examining Species-Specific Responses</h3>
+<section id="examining-species-specific-responses" class="level4">
+<h4 class="anchored" data-anchor-id="examining-species-specific-responses">Examining Species-Specific Responses</h4>
 <p>Let’s look at how different species respond to environmental covariates:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract fixed effects</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>fixed_effects <span class="ot">&lt;-</span> speciesEst<span class="sc">$</span>summary.fixed</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot species-specific responses to elevation</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(fixed_effects[<span class="fu">grep</span>(<span class="st">"elevation"</span>, <span class="fu">rownames</span>(fixed_effects)),], </span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">rownames</span>(fixed_effects)[<span class="fu">grep</span>(<span class="st">"elevation"</span>, <span class="fu">rownames</span>(fixed_effects))], </span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">y =</span> mean, <span class="at">ymin =</span> <span class="st">`</span><span class="at">0.025quant</span><span class="st">`</span>, <span class="at">ymax =</span> <span class="st">`</span><span class="at">0.975quant</span><span class="st">`</span>)) <span class="sc">+</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>() <span class="sc">+</span></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Species"</span>, <span class="at">y =</span> <span class="st">"Effect of Elevation"</span>, </span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Species-Specific Responses to Elevation"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract fixed effects</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fixed_effects <span class="ot">&lt;-</span> speciesSharedEst<span class="sc">$</span>summary.fixed</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot species-specific responses to elevation</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(fixed_effects[<span class="fu">grep</span>(<span class="st">"elevation"</span>, <span class="fu">rownames</span>(fixed_effects)),], </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">rownames</span>(fixed_effects)[<span class="fu">grep</span>(<span class="st">"elevation"</span>, <span class="fu">rownames</span>(fixed_effects))], </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">y =</span> mean, <span class="at">ymin =</span> <span class="st">`</span><span class="at">0.025quant</span><span class="st">`</span>, <span class="at">ymax =</span> <span class="st">`</span><span class="at">0.975quant</span><span class="st">`</span>)) <span class="sc">+</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>() <span class="sc">+</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Species"</span>, <span class="at">y =</span> <span class="st">"Effect of Elevation"</span>, </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Species-Specific Responses to Elevation"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="SetophagaExercise3_files/figure-html/shared%20mod%20plot%20cov%20est-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-</section>
-<section id="predicting-and-plotting" class="level3">
-<h3 class="anchored" data-anchor-id="predicting-and-plotting">Predicting and plotting</h3>
+<p>We can plot the predict and plot the spatial field Predictions as follows:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesEst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>speciesSharedPredSpat <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesSharedEst,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>                                                  <span class="at">mask =</span> PA),</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesSharedPredSpat, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="SetophagaExercise3_files/figure-html/shared%20mod%20pred%20spat-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The covariate effects can also be plotted separately as follows:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>speciesSharedPredCov <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesSharedEst,</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                                <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                                                 <span class="at">mask =</span> PA),</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                                <span class="at">spatial =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                                <span class="at">covariates =</span> speciesSharedEst<span class="sc">$</span>spatCovs<span class="sc">$</span>name,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>                                <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesSharedPredCov, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="SetophagaExercise3_files/figure-html/shared%20mod%20pred%20cov-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Alternatively, we can predict the spatial and covariate effects together as follows:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>speciesSharedPredSpatCov <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesSharedEst,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                                                     <span class="at">mask =</span> PA),</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">predictor =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co"># # or equivalently:</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># speciesSharedPredSpatCov &lt;- predict(speciesSharedEst,</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">#                               data = fm_pixels(mesh = mesh,</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">#                                                mask = PA),</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co">#                               spatial = TRUE,</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co">#                               covariates = speciesSharedEst$spatCovs$name,</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="co">#                               n.samples = 100)</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesSharedPredSpatCov, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="SetophagaExercise3_files/figure-html/shared%20mod%20pred%20spatCov-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This shared approach can be particularly useful when species are expected to respond similarly to underlying environmental gradients, or when data for some species is limited. It is also computationally the fastest as there are fewer parameters being estimated.</p>
+</section>
+</section>
+<section id="shared-hyperparameters-speciesspatial-replicate" class="level3">
+<h3 class="anchored" data-anchor-id="shared-hyperparameters-speciesspatial-replicate">Shared hyperparameters: <code>speciesSpatial = "replicate"</code></h3>
+<p>The next up is allowing each species to have their own spatial fields and intercepts, but share their hyperparameters (i.e., range and sigma). We achieve this by defining the <code>speciesSpatial</code> argument as <code>replicate</code>. This also happens to be the default for <code>startSpecies()</code> (i.e., when <code>speciesSpatial</code> is not explicitly defined). This approach allows for species-specific spatial patterns while still borrowing strength across species regarding the structural heterogeneity in the spatial field.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>speciesModelReplicate <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, <span class="at">Boundary =</span> PA, </span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">Projection =</span> proj, <span class="at">Mesh =</span> mesh,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">responsePA =</span> <span class="st">'NPres'</span>, </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">spatialCovariates =</span> covariates, </span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">speciesName =</span> <span class="st">'Species_name'</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>, <span class="co"># Do not include a dataset spatial field</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">speciesSpatial =</span> <span class="st">"replicate"</span>)  <span class="co"># unique spatial field per species</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Specify priors for spatial and random effects:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># hyper parameters of the spatial field (shared across species)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>speciesModelReplicate<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Species =</span> <span class="cn">TRUE</span>,  <span class="co"># define same prior for the all species</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),  <span class="co"># SD of field variation; P(σ &gt; σ0)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))  <span class="co"># range of spatial correlation; P(ρ &lt; ρ0)</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for intercept of datasets (common for all datasets and all species in the model)</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>speciesModelReplicate<span class="sc">$</span><span class="fu">priorsFixed</span>(<span class="at">Effect =</span> <span class="st">'Intercept'</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">mean.linear =</span> <span class="dv">0</span>, </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">prec.linear =</span> <span class="fl">0.1</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for random effects (mesh nodes of spatial field and species intercepts)</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>speciesModelReplicate<span class="sc">$</span><span class="fu">specifyRandom</span>(</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesGroup =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"iid"</span>, </span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>                      <span class="at">hyper =</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))),  <span class="co"># P(σ &gt; σ0)</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on the baseline species occurrence rate</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIntercepts =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">'pc.prec'</span>,</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>                           <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))  <span class="co"># P(σ &gt; σ0)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, we can specify model options and fit the model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Species-specific spatial effects model</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>speciesReplicateEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesModelReplicate, <span class="at">options =</span> modelOptions)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># View summary of the estimated model</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesReplicateEst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Summary of 'modSpecies' object:
 
-inlabru version: 2.10.1
-INLA version: 24.06.27
+inlabru version: 2.11.1
+INLA version: 24.05.10
 
 Types of data modelled:
                                     
@@ -480,50 +442,32 @@ BBS                  Present absence
 Summary of the fixed effects for the species:
 
 Summary for Setophaga_caerulescens:
-                                                 mean         sd  0.025quant
-Setophaga_caerulescens_elevation         0.5194823538 0.04957312  0.42232082
-Setophaga_caerulescens_canopy            0.3829562714 0.04017513  0.30421446
-Setophaga_caerulescens_random_intercept -0.0008509562 0.02927965 -0.05823801
-                                             0.5quant 0.975quant          mode
-Setophaga_caerulescens_elevation         0.5194823538  0.6166439  0.5194823538
-Setophaga_caerulescens_canopy            0.3829562714  0.4616981  0.3829562714
-Setophaga_caerulescens_random_intercept -0.0008509562  0.0565361 -0.0008509562
-                                                 kld
-Setophaga_caerulescens_elevation        2.156597e-15
-Setophaga_caerulescens_canopy           5.242041e-16
-Setophaga_caerulescens_random_intercept 2.198999e-16
+                                                mean         sd  0.025quant
+Setophaga_caerulescens_elevation         0.605950810 0.05151981  0.50497384
+Setophaga_caerulescens_canopy            0.426590835 0.04156729  0.34512044
+Setophaga_caerulescens_random_intercept -0.002342825 0.03404065 -0.06906126
+                                            0.5quant 0.975quant         mode
+Setophaga_caerulescens_elevation         0.605950810 0.70692778  0.605950810
+Setophaga_caerulescens_canopy            0.426590835 0.50806123  0.426590835
+Setophaga_caerulescens_random_intercept -0.002342825 0.06437562 -0.002342825
+                                        kld
+Setophaga_caerulescens_elevation          0
+Setophaga_caerulescens_canopy             0
+Setophaga_caerulescens_random_intercept   0
 
 Summary for Setophaga_magnolia:
                                             mean         sd  0.025quant
-Setophaga_magnolia_elevation        -0.231729004 0.05729567 -0.34402644
-Setophaga_magnolia_canopy            0.051191152 0.03195341 -0.01143637
-Setophaga_magnolia_random_intercept  0.002092058 0.02927581 -0.05528747
-                                        0.5quant  0.975quant         mode
-Setophaga_magnolia_elevation        -0.231729004 -0.11943156 -0.231729004
-Setophaga_magnolia_canopy            0.051191152  0.11381868  0.051191152
-Setophaga_magnolia_random_intercept  0.002092058  0.05947159  0.002092058
-                                             kld
-Setophaga_magnolia_elevation        1.161832e-16
-Setophaga_magnolia_canopy           0.000000e+00
-Setophaga_magnolia_random_intercept 0.000000e+00
-
-Summary for Setophaga_fusca:
-                                         mean         sd  0.025quant
-Setophaga_fusca_elevation         0.287961243 0.04584226  0.19811206
-Setophaga_fusca_canopy            0.226235963 0.03244618  0.16264261
-Setophaga_fusca_random_intercept -0.001240908 0.02927902 -0.05862672
-                                     0.5quant 0.975quant         mode
-Setophaga_fusca_elevation         0.287961243 0.37781042  0.287961243
-Setophaga_fusca_canopy            0.226235963 0.28982932  0.226235963
-Setophaga_fusca_random_intercept -0.001240908 0.05614491 -0.001240908
-                                          kld
-Setophaga_fusca_elevation        2.150838e-15
-Setophaga_fusca_canopy           0.000000e+00
-Setophaga_fusca_random_intercept 1.218554e-16</code></pre>
+Setophaga_magnolia_elevation        -0.205099565 0.05902498 -0.32078639
+Setophaga_magnolia_canopy            0.054554961 0.03345257 -0.01101088
+Setophaga_magnolia_random_intercept  0.002343021 0.03404065 -0.06437542
+                                        0.5quant  0.975quant         mode kld
+Setophaga_magnolia_elevation        -0.205099565 -0.08941274 -0.205099565   0
+Setophaga_magnolia_canopy            0.054554961  0.12012080  0.054554961   0
+Setophaga_magnolia_random_intercept  0.002343021  0.06906146  0.002343021   0</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Time used:
-    Pre = 1.11, Running = 1.32, Post = 0.041, Total = 2.48 
+    Pre = 0.855, Running = 2.72, Post = 0.139, Total = 3.72 
 Random effects:
   Name    Model
     speciesShared SPDE2 model
@@ -531,245 +475,90 @@ Random effects:
 
 Model hyperparameters:
                                           mean       sd 0.025quant 0.5quant
-Range for speciesShared                  87.25 8.52e+00     71.645    86.86
-Stdev for speciesShared                   1.06 5.50e-02      0.961     1.06
-Precision for Species_name_intercepts 18323.53 2.05e+05     32.992  1283.90
+Range for speciesShared                  87.16 1.00e+01      70.32    86.22
+Stdev for speciesShared                   1.15 6.70e-02       1.02     1.15
+Precision for Species_name_intercepts 12163.88 1.19e+05      45.26   958.74
                                       0.975quant  mode
-Range for speciesShared                 1.05e+02 86.10
-Stdev for speciesShared                 1.18e+00  1.06
-Precision for Species_name_intercepts   1.16e+05 47.47
+Range for speciesShared                   109.57 83.52
+Stdev for speciesShared                     1.29  1.14
+Precision for Species_name_intercepts   77679.82 89.60
 
-Deviance Information Criterion (DIC) ...............: -127708.17
-Deviance Information Criterion (DIC, saturated) ....: -128950.27
-Effective number of parameters .....................: -143630.10
+Deviance Information Criterion (DIC) ...............: -97460.79
+Deviance Information Criterion (DIC, saturated) ....: NA
+Effective number of parameters .....................: -107496.88
 
-Watanabe-Akaike information criterion (WAIC) ...: 48392.65
-Effective number of parameters .................: 15486.57
+Watanabe-Akaike information criterion (WAIC) ...: 32375.98
+Effective number of parameters .................: 10469.46
 
-Marginal log-Likelihood:  -80628.19 
+Marginal log-Likelihood:  -59380.29 
  is computed 
 Posterior summaries for the linear predictor and the fitted values are computed
 (Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
 </div>
 </div>
-<p>Predictions and plotting are completed as follows:</p>
+<p>We can predict and plot the spatial field Predictions as follows:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>speciesPredictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesEst,</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">mask =</span> PA),</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                              <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                              <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesPredictions, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>, <span class="st">'sd'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>speciesReplicatePredSpat <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesReplicateEst,</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                                                     <span class="at">mask =</span> PA),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesReplicatePredSpat, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/predictionsSpecies-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="SetophagaExercise3_files/figure-html/replicate%20mod%20pred%20spat-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
+<p>As we are primarily changing the structure of the spatial field, we will not plot covariate effects for this example.</p>
 </section>
-</section>
-</section>
-<section id="sharing-parts-of-the-model-across-data-set-and-species" class="level1">
-<h1>Sharing parts of the model across data set and species</h1>
-<p>If we want to share information across species, we might have a model:</p>
-<p><span class="math display">\[
-\lambda_i(\bf{s}) = \alpha_i + \zeta_i(\bf{s}) \\
-\zeta_i(\bf{s}) \sim N(0, \sigma_i^2)
-\]</span></p>
-<p>where <span class="math inline">\(\zeta_i(\bf{s})\)</span> is a species level spatial effect with covariance matrix <span class="math inline">\(\sigma^2_i\)</span> . We can share information in 3 ways using the argument <code>speciesSpatial</code>:</p>
-<ul>
-<li><strong><code>"share"</code></strong> share everything: <span class="math inline">\(\zeta_i(\bf{s}) = \zeta(\bf{s})\)</span>. Same random field across all species</li>
-<li><strong><code>"replicate"</code></strong> share hyper-parameters: <span class="math inline">\(\sigma_i^2 = \sigma^2\)</span>. Different random field for each species, but shared hyperparameters.</li>
-<li><strong><code>"copy"</code></strong> share nothing: <span class="math inline">\(\zeta_i(\bf{s})\)</span> and <span class="math inline">\(\sigma_i^2\)</span> all different. This may take a long time to estimate as the number of species greatly increases.</li>
-</ul>
-<section id="shared-species-model" class="level2">
-<h2 class="anchored" data-anchor-id="shared-species-model">Shared species model</h2>
-<p>The previous model assumed that each species had independent latent distribution, however, if we wish assumed that the species occurrence emerged from a common distribution. We can do this by updating we could if have Let’s fit two models - one with shared spatial effects and one with species-specific spatial effects.</p>
+<section id="independent-spatial-field-speciesspatial-copy" class="level3">
+<h3 class="anchored" data-anchor-id="independent-spatial-field-speciesspatial-copy">Independent spatial field: <code>speciesSpatial = "copy"</code></h3>
+<p>Finally, we’ll implement a <code>copy</code> model, where the spatial field and its hyperparameters are estimated separately for each species. The <strong><code>"copy"</code></strong> approach can be particularly useful when you expect species to have distinct spatial patterns, but you want to ensure consistency in how these patterns are estimated across different datasets. While this gives the model the maximum amount of flexibility, it comes at the expenese of computation time – especially as the number of species greatly increases.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>speciesSharedModel <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, <span class="at">Boundary =</span> PA, </span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>                             <span class="at">Projection =</span> proj, <span class="at">Mesh =</span> mesh,</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                             <span class="at">responsePA =</span> <span class="st">'NPres'</span>, </span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>                             <span class="at">trialsPA =</span> <span class="st">'Trials'</span>,  <span class="co"># Name of no. of trials for binomial data</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>                             <span class="at">speciesSpatial =</span> <span class="st">"shared"</span>,   <span class="co"># unique spatial field per species</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>                             <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>,<span class="co"># Do not include a dataset spatial field</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>                             <span class="at">spatialCovariates =</span> covariates, </span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>                             <span class="at">speciesName =</span> <span class="st">'Species_name'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>speciesCopyModel <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, <span class="at">Boundary =</span> PA, </span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">Projection =</span> proj, <span class="at">Mesh =</span> mesh,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">responsePA =</span> <span class="st">'NPres'</span>, </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trialsPA =</span> <span class="st">'Trials'</span>, </span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">spatialCovariates =</span> covariates, </span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">speciesName =</span> <span class="st">'Species_name'</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>,<span class="co"># Do not include a dataset spatial field</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">speciesSpatial =</span> <span class="st">"copy"</span>)   <span class="co"># unique spatial field per species</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>update model &amp; fit</p>
+<p>Update and fit the model:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># hyper parameters of the spatial field (shared across species)</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>speciesSharedModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Species =</span> <span class="cn">TRUE</span>,  <span class="co"># define same prior for the all species</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),  <span class="co"># SD of field variation; P(σ &gt; σ0)</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))  <span class="co"># range of spatial correlation; P(ρ &lt; ρ0)</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for intercept of datasets (common for all datasets and all species in the model)</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>speciesSharedModel<span class="sc">$</span><span class="fu">priorsFixed</span>(<span class="at">Effect =</span> <span class="st">'Intercept'</span>,</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>                         <span class="at">mean.linear =</span> <span class="dv">0</span>, </span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>                         <span class="at">prec.linear =</span> <span class="fl">0.1</span>)</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for random effects (mesh nodes of spatial field and species intercepts)</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>speciesSharedModel<span class="sc">$</span><span class="fu">specifyRandom</span>(</span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)</span></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesGroup =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"iid"</span>, </span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>                      <span class="at">hyper =</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))),  <span class="co"># P(σ &gt; σ0)</span></span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on the baseline species occurrence rate</span></span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIntercepts =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">'pc.prec'</span>,</span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>                           <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))  <span class="co"># P(σ &gt; σ0)</span></span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Species-specific spatial effects model</span></span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>speciesSharedEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesSharedModel, <span class="at">options =</span> modelOptions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>View results</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View summary of the estimated model</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesSharedEst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># hyper parameters of the spatial field (shared across species)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>speciesCopyModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Species =</span> <span class="cn">TRUE</span>,  <span class="co"># define same prior for the all species</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                                <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),  <span class="co"># SD of field variation; P(σ &gt; σ0)</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                                <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))  <span class="co"># range of spatial correlation; P(ρ &lt; ρ0)</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for intercept of datasets (common for all datasets and all species in the model)</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>speciesCopyModel<span class="sc">$</span><span class="fu">priorsFixed</span>(<span class="at">Effect =</span> <span class="st">'Intercept'</span>,</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>                             <span class="at">mean.linear =</span> <span class="dv">0</span>, </span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>                             <span class="at">prec.linear =</span> <span class="fl">0.1</span>)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for random effects (mesh nodes of spatial field and species intercepts)</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>speciesCopyModel<span class="sc">$</span><span class="fu">specifyRandom</span>(</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesGroup =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"iid"</span>, </span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>                      <span class="at">hyper =</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))),  <span class="co"># P(σ &gt; σ0)</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on the baseline species occurrence rate</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIntercepts =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">'pc.prec'</span>,</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>                           <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))  <span class="co"># P(σ &gt; σ0)</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Species-specific spatial effects model</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>speciesCopyEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesCopyModel, <span class="at">options =</span> modelOptions)</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a><span class="co"># View summary of the estimated model</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesCopyEst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Summary of 'modSpecies' object:
 
-inlabru version: 2.10.1
-INLA version: 24.06.27
-
-Types of data modelled:
-                                    
-eBird                   Present only
-BBA                  Present absence
-BBS                  Present absence
-
-Summary of the fixed effects for the species:
-
-Summary for Setophaga_caerulescens:
-                                               mean         sd  0.025quant
-Setophaga_caerulescens_elevation         0.09445281 0.03386426  0.02808008
-Setophaga_caerulescens_canopy            0.26140572 0.02698502  0.20851605
-Setophaga_caerulescens_random_intercept -0.01801451 0.01407811 -0.04560709
-                                           0.5quant  0.975quant        mode
-Setophaga_caerulescens_elevation         0.09445281 0.160825541  0.09445281
-Setophaga_caerulescens_canopy            0.26140572 0.314295398  0.26140572
-Setophaga_caerulescens_random_intercept -0.01801451 0.009578076 -0.01801451
-                                                 kld
-Setophaga_caerulescens_elevation        0.000000e+00
-Setophaga_caerulescens_canopy           5.648871e-16
-Setophaga_caerulescens_random_intercept 0.000000e+00
-
-Summary for Setophaga_magnolia:
-                                         mean         sd 0.025quant  0.5quant
-Setophaga_magnolia_elevation        0.1730904 0.03448323  0.1055045 0.1730904
-Setophaga_magnolia_canopy           0.2219882 0.02559454  0.1718238 0.2219882
-Setophaga_magnolia_random_intercept 0.1300045 0.01366688  0.1032179 0.1300045
-                                    0.975quant      mode kld
-Setophaga_magnolia_elevation         0.2406763 0.1730904   0
-Setophaga_magnolia_canopy            0.2721526 0.2219882   0
-Setophaga_magnolia_random_intercept  0.1567911 0.1300045   0
-
-Summary for Setophaga_fusca:
-                                       mean         sd 0.025quant   0.5quant
-Setophaga_fusca_elevation         0.4743474 0.03378316  0.4081336  0.4743474
-Setophaga_fusca_canopy            0.2625840 0.02669872  0.2102555  0.2625840
-Setophaga_fusca_random_intercept -0.1119900 0.01415327 -0.1397299 -0.1119900
-                                  0.975quant       mode          kld
-Setophaga_fusca_elevation         0.54056113  0.4743474 0.000000e+00
-Setophaga_fusca_canopy            0.31491254  0.2625840 5.037964e-15
-Setophaga_fusca_random_intercept -0.08425007 -0.1119900 0.000000e+00</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Time used:
-    Pre = 0.855, Running = 0.633, Post = 0.0322, Total = 1.52 
-Random effects:
-  Name    Model
-    speciesShared SPDE2 model
-   Species_name_intercepts IID model
-
-Model hyperparameters:
-                                        mean    sd 0.025quant 0.5quant
-Range for speciesShared                81.80 12.94     59.893    80.60
-Stdev for speciesShared                 1.05  0.08      0.901     1.04
-Precision for Species_name_intercepts 123.84 94.09     23.710    98.89
-                                      0.975quant  mode
-Range for speciesShared                   110.69 77.91
-Stdev for speciesShared                     1.22  1.03
-Precision for Species_name_intercepts     371.20 60.42
-
-Deviance Information Criterion (DIC) ...............: -123639.67
-Deviance Information Criterion (DIC, saturated) ....: -124881.85
-Effective number of parameters .....................: -142010.77
-
-Watanabe-Akaike information criterion (WAIC) ...: 42883.33
-Effective number of parameters .................: 12025.12
-
-Marginal log-Likelihood:  -80608.95 
- is computed 
-Posterior summaries for the linear predictor and the fitted values are computed
-(Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># generate prediction</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>speciesSharedPredictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesSharedEst,</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                              <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">mask =</span> PA),</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>                              <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                              <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesSharedPredictions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>This shared approach can be particularly useful when species are expected to respond similarly to underlying environmental gradients, or when data for some species is limited.</p>
-</section>
-<section id="copy-model" class="level2">
-<h2 class="anchored" data-anchor-id="copy-model">Copy model</h2>
-<p>Finally, we’ll implement a <code>copy</code> model, where the spatial field is estimated separately for each species but copied across datasets. This approach allows for species-specific spatial effects while maintaining consistency across different data sources:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>speciesCopyModel <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, <span class="at">Boundary =</span> PA, </span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                             <span class="at">Projection =</span> proj, <span class="at">Mesh =</span> mesh,</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                             <span class="at">responsePA =</span> <span class="st">'NPres'</span>, </span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                             <span class="at">trialsPA =</span> <span class="st">'Trials'</span>,  <span class="co"># Name of no. of trials for binomial data</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                             <span class="at">speciesSpatial =</span> <span class="st">"copy"</span>,   <span class="co"># unique spatial field per species</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                             <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>,<span class="co"># Do not include a dataset spatial field</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>                             <span class="at">spatialCovariates =</span> covariates, </span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>                             <span class="at">speciesName =</span> <span class="st">'Species_name'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Update model &amp; fit</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># hyper parameters of the spatial field (shared across species)</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>speciesCopyModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Species =</span> <span class="cn">TRUE</span>,  <span class="co"># define same prior for the all species</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),  <span class="co"># SD of field variation; P(σ &gt; σ0)</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))  <span class="co"># range of spatial correlation; P(ρ &lt; ρ0)</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for intercept of datasets (common for all datasets and all species in the model)</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>speciesCopyModel<span class="sc">$</span><span class="fu">priorsFixed</span>(<span class="at">Effect =</span> <span class="st">'Intercept'</span>,</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>                         <span class="at">mean.linear =</span> <span class="dv">0</span>, </span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>                         <span class="at">prec.linear =</span> <span class="fl">0.1</span>)</span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co"># prior for random effects (mesh nodes of spatial field and species intercepts)</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>speciesCopyModel<span class="sc">$</span><span class="fu">specifyRandom</span>(</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesGroup =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"iid"</span>, </span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>                      <span class="at">hyper =</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))),  <span class="co"># P(σ &gt; σ0)</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># precision parameter on the baseline species occurrence rate</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIntercepts =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">'pc.prec'</span>,</span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>                           <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))  <span class="co"># P(σ &gt; σ0)</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Species-specific spatial effects model</span></span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>speciesCopyEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesCopyModel, <span class="at">options =</span> modelOptions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>View results</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View summary of the estimated model</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesCopyEst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Summary of 'modSpecies' object:
-
-inlabru version: 2.10.1
-INLA version: 24.06.27
+inlabru version: 2.11.1
+INLA version: 24.05.10
 
 Types of data modelled:
                                     
@@ -781,344 +570,181 @@ Summary of the fixed effects for the species:
 
 Summary for Setophaga_caerulescens:
                                               mean         sd 0.025quant
-Setophaga_caerulescens_elevation         0.7531355 0.04808703  0.6588867
-Setophaga_caerulescens_canopy            0.5832888 0.04399600  0.4970582
-Setophaga_caerulescens_random_intercept -0.9739562 0.05132042 -1.0745424
-                                          0.5quant 0.975quant       mode
-Setophaga_caerulescens_elevation         0.7531355  0.8473844  0.7531355
-Setophaga_caerulescens_canopy            0.5832888  0.6695193  0.5832888
-Setophaga_caerulescens_random_intercept -0.9739562 -0.8733700 -0.9739562
-                                                 kld
-Setophaga_caerulescens_elevation        1.340616e-14
-Setophaga_caerulescens_canopy           2.857841e-15
-Setophaga_caerulescens_random_intercept 0.000000e+00
+Setophaga_caerulescens_elevation         0.7587001 0.04849049  0.6636605
+Setophaga_caerulescens_canopy            0.6079950 0.04435721  0.5210565
+Setophaga_caerulescens_random_intercept -0.8122173 0.04153825 -0.8936308
+                                          0.5quant 0.975quant       mode kld
+Setophaga_caerulescens_elevation         0.7587001  0.8537397  0.7587001   0
+Setophaga_caerulescens_canopy            0.6079950  0.6949335  0.6079950   0
+Setophaga_caerulescens_random_intercept -0.8122173 -0.7308039 -0.8122173   0
 
 Summary for Setophaga_magnolia:
-                                           mean         sd 0.025quant
-Setophaga_magnolia_elevation        -0.15523717 0.04237985 -0.2383002
-Setophaga_magnolia_canopy           -0.08049665 0.03402713 -0.1471886
-Setophaga_magnolia_random_intercept  0.63641411 0.04191820  0.5542559
-                                       0.5quant  0.975quant        mode
-Setophaga_magnolia_elevation        -0.15523717 -0.07217419 -0.15523717
-Setophaga_magnolia_canopy           -0.08049665 -0.01380470 -0.08049665
-Setophaga_magnolia_random_intercept  0.63641411  0.71857228  0.63641411
-                                             kld
-Setophaga_magnolia_elevation        6.029949e-16
-Setophaga_magnolia_canopy           0.000000e+00
-Setophaga_magnolia_random_intercept 1.071346e-14
-
-Summary for Setophaga_fusca:
-                                      mean         sd 0.025quant  0.5quant
-Setophaga_fusca_elevation        0.1490324 0.03862399 0.07333073 0.1490324
-Setophaga_fusca_canopy           0.2036235 0.03163240 0.14162513 0.2036235
-Setophaga_fusca_random_intercept 0.3436458 0.04368035 0.25803390 0.3436458
-                                 0.975quant      mode         kld
-Setophaga_fusca_elevation         0.2247340 0.1490324 1.86764e-16
-Setophaga_fusca_canopy            0.2656219 0.2036235 0.00000e+00
-Setophaga_fusca_random_intercept  0.4292577 0.3436458 0.00000e+00</code></pre>
+                                          mean         sd 0.025quant   0.5quant
+Setophaga_magnolia_elevation        -0.1621335 0.04300120 -0.2464143 -0.1621335
+Setophaga_magnolia_canopy           -0.0767736 0.03446156 -0.1443170 -0.0767736
+Setophaga_magnolia_random_intercept  0.8122172 0.04153825  0.7308037  0.8122172
+                                      0.975quant       mode kld
+Setophaga_magnolia_elevation        -0.077852662 -0.1621335   0
+Setophaga_magnolia_canopy           -0.009230175 -0.0767736   0
+Setophaga_magnolia_random_intercept  0.893630640  0.8122172   0</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Time used:
-    Pre = 1.4, Running = 8.24, Post = 0.0742, Total = 9.71 
+    Pre = 1.12, Running = 8.93, Post = 0.229, Total = 10.3 
 Random effects:
   Name    Model
     Setophaga_caerulescens_eBird_spatial SPDE2 model
    Species_name_intercepts IID model
    Setophaga_magnolia_eBird_spatial SPDE2 model
-   Setophaga_fusca_eBird_spatial SPDE2 model
-   Setophaga_fusca_BBA_spatial Copy
    Setophaga_caerulescens_BBA_spatial Copy
    Setophaga_magnolia_BBA_spatial Copy
    Setophaga_magnolia_BBS_spatial Copy
    Setophaga_caerulescens_BBS_spatial Copy
-   Setophaga_fusca_BBS_spatial Copy
 
 Model hyperparameters:
-                                                  mean     sd 0.025quant
-Range for Setophaga_caerulescens_eBird_spatial  99.956 15.036     74.722
-Stdev for Setophaga_caerulescens_eBird_spatial   1.461  0.129      1.229
-Precision for Species_name_intercepts           11.032  4.782      4.255
-Range for Setophaga_magnolia_eBird_spatial      55.131  9.629     38.593
-Stdev for Setophaga_magnolia_eBird_spatial       1.030  0.067      0.905
-Range for Setophaga_fusca_eBird_spatial         74.046 13.135     51.968
-Stdev for Setophaga_fusca_eBird_spatial          0.902  0.070      0.772
-Beta for Setophaga_fusca_BBA_spatial             0.170  0.059      0.053
-Beta for Setophaga_caerulescens_BBA_spatial      0.003  0.046     -0.088
-Beta for Setophaga_magnolia_BBA_spatial          0.033  0.059     -0.084
-Beta for Setophaga_magnolia_BBS_spatial          0.450  0.080      0.293
-Beta for Setophaga_caerulescens_BBS_spatial      0.906  0.048      0.811
-Beta for Setophaga_fusca_BBS_spatial             0.988  0.104      0.784
+                                                 mean     sd 0.025quant
+Range for Setophaga_caerulescens_eBird_spatial 99.734 14.743     74.724
+Stdev for Setophaga_caerulescens_eBird_spatial  1.481  0.132      1.244
+Precision for Species_name_intercepts          11.431  5.455      4.150
+Range for Setophaga_magnolia_eBird_spatial     55.188  9.339     39.181
+Stdev for Setophaga_magnolia_eBird_spatial      1.035  0.066      0.911
+Beta for Setophaga_caerulescens_BBA_spatial     0.004  0.047     -0.089
+Beta for Setophaga_magnolia_BBA_spatial         0.051  0.062     -0.072
+Beta for Setophaga_magnolia_BBS_spatial         0.407  0.084      0.243
+Beta for Setophaga_caerulescens_BBS_spatial     0.861  0.056      0.752
                                                0.5quant 0.975quant   mode
-Range for Setophaga_caerulescens_eBird_spatial   98.494    133.752 94.971
-Stdev for Setophaga_caerulescens_eBird_spatial    1.453      1.738  1.434
-Precision for Species_name_intercepts            10.184     22.699  8.625
-Range for Setophaga_magnolia_eBird_spatial       54.313     76.384 52.721
-Stdev for Setophaga_magnolia_eBird_spatial        1.028      1.169  1.023
-Range for Setophaga_fusca_eBird_spatial          72.771    103.521 70.073
-Stdev for Setophaga_fusca_eBird_spatial           0.899      1.049  0.893
-Beta for Setophaga_fusca_BBA_spatial              0.170      0.287  0.169
-Beta for Setophaga_caerulescens_BBA_spatial       0.004      0.094  0.004
-Beta for Setophaga_magnolia_BBA_spatial           0.033      0.150  0.033
-Beta for Setophaga_magnolia_BBS_spatial           0.449      0.609  0.447
-Beta for Setophaga_caerulescens_BBS_spatial       0.906      1.001  0.906
-Beta for Setophaga_fusca_BBS_spatial              0.988      1.195  0.987
+Range for Setophaga_caerulescens_eBird_spatial   98.382    132.628 95.220
+Stdev for Setophaga_caerulescens_eBird_spatial    1.473      1.762  1.455
+Precision for Species_name_intercepts            10.337     25.093  8.428
+Range for Setophaga_magnolia_eBird_spatial       54.384     75.843 52.760
+Stdev for Setophaga_magnolia_eBird_spatial        1.033      1.173  1.027
+Beta for Setophaga_caerulescens_BBA_spatial       0.003      0.096  0.003
+Beta for Setophaga_magnolia_BBA_spatial           0.051      0.173  0.052
+Beta for Setophaga_magnolia_BBS_spatial           0.406      0.574  0.403
+Beta for Setophaga_caerulescens_BBS_spatial       0.861      0.971  0.860
 
-Deviance Information Criterion (DIC) ...............: -129936.77
-Deviance Information Criterion (DIC, saturated) ....: -131178.83
-Effective number of parameters .....................: -144369.64
+Deviance Information Criterion (DIC) ...............: -99195.77
+Deviance Information Criterion (DIC, saturated) ....: NA
+Effective number of parameters .....................: -108143.31
 
-Watanabe-Akaike information criterion (WAIC) ...: 48189.77
-Effective number of parameters .................: 15616.78
+Watanabe-Akaike information criterion (WAIC) ...: 33571.44
+Effective number of parameters .................: 10972.78
 
-Marginal log-Likelihood:  -80402.37 
+Marginal log-Likelihood:  -59212.37 
  is computed 
 Posterior summaries for the linear predictor and the fitted values are computed
 (Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># generate prediction</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>speciesCopyPredictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesCopyEst,</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                              <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">mask =</span> PA),</span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>                              <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>                              <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesCopyPredictions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>View results (again, only the spatial field):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># generate prediction</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>speciesCopyPredSpat <span class="ot">&lt;-</span> <span class="fu">predict</span>(speciesCopyEst,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                               <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                                                <span class="at">mask =</span> PA),</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                               <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                               <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesCopyPredSpat, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="SetophagaExercise3_files/figure-html/copy%20mod%20predict-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>The <strong><code>"copy"</code></strong> approach can be particularly useful when you expect species to have distinct spatial patterns, but you want to ensure consistency in how these patterns are estimated across different datasets.</p>
 </section>
-<section id="species-specific-covariate-effects" class="level2">
-<h2 class="anchored" data-anchor-id="species-specific-covariate-effects">Species-specific covariate effects</h2>
-<p>In multi-species models, we may want to allow for species-specific responses to environmental variables In our case, we know that our three Setophaga species have different associations with coniferous forests: - <em>Setophaga caerulescens</em> prefers deciduous forests - <em>Setophaga fusca</em> is strongly associated with mature coniferous and mixed forests - <em>Setophaga magnolia</em> favors coniferous and mixed forests</p>
-<p>Therefore, we may wish to include effect of coniferous forest cover on only <em>Setophaga fusca</em> and <em>Setophaga magnolia</em>, which can be achieved using the <code>changeComponents</code> slot function. We first have to add coniferous forest to the spatial covariates when initialising the model:</p>
+</section>
+</section>
+<section id="species-specific-covariate-effects" class="level1">
+<h1>Species-specific covariate effects</h1>
+<p>In some instance, we may want to include different environmental covariates for different species. This may be desired if some covariates are only applicable for some of the species or to test competing hypotheses.</p>
+<p>In our case, given the similarity of the species and the covariates we have available, there likely isn’t a good reason for including different species-specific covariates. However, just for illustration, we will fit a model where both species have an effect of elevation, but only <em>Setophaga caerulescens</em> will have an effect of canopy cover. This can be achieved by removing the <em>Setophaga caerulescens</em> canopy cover component of the model using the <code>$changeComponents()</code> slot function. We can see the components currently in the model by running <code>$changeComponents()</code> without specifying any arguments:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load and prepare coniferous forest cover data</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>conif_cover <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">here</span>(<span class="st">"Data/Vignette_setophaga/pa_conif_cover.tiff"</span>))</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine all covariates</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>all_covariates <span class="ot">&lt;-</span> <span class="fu">c</span>(covariates, conif_cover)</span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Set up the multi-species model</span></span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>speciesModelConif <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, </span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>                             <span class="at">Boundary =</span> PA, </span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>                             <span class="at">Projection =</span> proj, </span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>                             <span class="at">Mesh =</span> mesh,</span>
-<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>                             <span class="at">responsePA =</span> <span class="st">'NPres'</span>, </span>
-<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>                             <span class="at">trialsPA =</span> <span class="st">'Trials'</span>,</span>
-<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>                             <span class="at">speciesSpatial =</span> <span class="st">"replicate"</span>,</span>
-<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>                             <span class="at">pointsSpatial =</span> <span class="cn">NULL</span>,</span>
-<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>                             <span class="at">spatialCovariates =</span> all_covariates, </span>
-<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>                             <span class="at">speciesName =</span> <span class="st">'Species_name'</span>,</span>
-<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>                             <span class="at">speciesEnvironment =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Next, we can see the components in the model by running <code>changeComponents()</code> without specifying any arguments:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>speciesModelConif<span class="sc">$</span><span class="fu">changeComponents</span>()  <span class="co"># view available components</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>speciesSpecCovModel <span class="ot">&lt;-</span> speciesModelReplicate  <span class="co"># make a copy to retain original model</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>speciesSpecCovModel<span class="sc">$</span><span class="fu">changeComponents</span>()  <span class="co"># view available components</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Model components:
 ~-1 + speciesShared(main = geometry, model = speciesField, group = speciesSpatialGroup, 
-    control.group = list(model = "iid")) + Setophaga_caerulescens_elevation(main = Setophaga_caerulescens_elevation, 
+    control.group = list(model = "iid", hyper = list(prec = list(prior = "pc.prec", 
+        param = c(0.1, 0.1))))) + Setophaga_caerulescens_elevation(main = Setophaga_caerulescens_elevation, 
     model = "linear") + Setophaga_magnolia_elevation(main = Setophaga_magnolia_elevation, 
-    model = "linear") + Setophaga_fusca_elevation(main = Setophaga_fusca_elevation, 
     model = "linear") + Setophaga_caerulescens_canopy(main = Setophaga_caerulescens_canopy, 
     model = "linear") + Setophaga_magnolia_canopy(main = Setophaga_magnolia_canopy, 
-    model = "linear") + Setophaga_fusca_canopy(main = Setophaga_fusca_canopy, 
-    model = "linear") + Setophaga_caerulescens_conif_cover(main = Setophaga_caerulescens_conif_cover, 
-    model = "linear") + Setophaga_magnolia_conif_cover(main = Setophaga_magnolia_conif_cover, 
-    model = "linear") + Setophaga_fusca_conif_cover(main = Setophaga_fusca_conif_cover, 
-    model = "linear") + eBird_intercept(1) + BBA_intercept(1) + 
-    BBS_intercept(1) + Species_name_intercepts(main = Species_name, 
-    model = "iid", constr = TRUE, hyper = list(prec = list(prior = "loggamma", 
-        param = c(1, 5e-05))))
-&lt;environment: 0x142ae3158&gt;</code></pre>
+    model = "linear") + Species_name_intercepts(main = Species_name, 
+    model = "iid", constr = TRUE, hyper = list(prec = list(prior = "pc.prec", 
+        param = c(0.1, 0.1)))) + eBird_intercept(1, mean.linear = 0, 
+    prec.linear = 0.1) + BBA_intercept(1, mean.linear = 0, prec.linear = 0.1) + 
+    BBS_intercept(1, mean.linear = 0, prec.linear = 0.1)
+&lt;environment: 0x00000200c8156c80&gt;</code></pre>
 </div>
 </div>
-<p>Now, we can remove any components that we don’t want to include in the model – in this case the effect of coniferous forest on <em>Setophaga caerulescens</em>:</p>
+<p>Now, we can remove any components that we don’t want to include in the model – in this case the effect of canopy cover on on <em>Setophaga magnolia</em>, which we can see from above has been named <code>Setophaga_magnolia_canopy()</code>. We can remove this component by defining it as the <code>removeComponent</code> argument in <code>$changeComponents()</code> as follows:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>speciesModelConif<span class="sc">$</span><span class="fu">changeComponents</span>(<span class="at">removeComponent =</span> <span class="st">"Setophaga_caerulescens_conif_cover"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>speciesSpecCovModel<span class="sc">$</span><span class="fu">changeComponents</span>(<span class="at">removeComponent =</span> <span class="st">"Setophaga_magnolia_canopy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Model components:
 ~-1 + speciesShared(main = geometry, model = speciesField, group = speciesSpatialGroup, 
-    control.group = list(model = "iid")) + Setophaga_caerulescens_elevation(main = Setophaga_caerulescens_elevation, 
+    control.group = list(model = "iid", hyper = list(prec = list(prior = "pc.prec", 
+        param = c(0.1, 0.1))))) + Setophaga_caerulescens_elevation(main = Setophaga_caerulescens_elevation, 
     model = "linear") + Setophaga_magnolia_elevation(main = Setophaga_magnolia_elevation, 
-    model = "linear") + Setophaga_fusca_elevation(main = Setophaga_fusca_elevation, 
     model = "linear") + Setophaga_caerulescens_canopy(main = Setophaga_caerulescens_canopy, 
-    model = "linear") + Setophaga_magnolia_canopy(main = Setophaga_magnolia_canopy, 
-    model = "linear") + Setophaga_fusca_canopy(main = Setophaga_fusca_canopy, 
-    model = "linear") + Setophaga_magnolia_conif_cover(main = Setophaga_magnolia_conif_cover, 
-    model = "linear") + Setophaga_fusca_conif_cover(main = Setophaga_fusca_conif_cover, 
-    model = "linear") + eBird_intercept(1) + BBA_intercept(1) + 
-    BBS_intercept(1) + Species_name_intercepts(main = Species_name, 
-    model = "iid", constr = TRUE, hyper = list(prec = list(prior = "loggamma", 
-        param = c(1, 5e-05))))
-&lt;environment: 0x1431808d0&gt;</code></pre>
+    model = "linear") + Species_name_intercepts(main = Species_name, 
+    model = "iid", constr = TRUE, hyper = list(prec = list(prior = "pc.prec", 
+        param = c(0.1, 0.1)))) + eBird_intercept(1, mean.linear = 0, 
+    prec.linear = 0.1) + BBA_intercept(1, mean.linear = 0, prec.linear = 0.1) + 
+    BBS_intercept(1, mean.linear = 0, prec.linear = 0.1)
+&lt;environment: 0x00000200c7567ca8&gt;</code></pre>
 </div>
 </div>
-<p>Finally, we’ll specify priors, fit the model, and examine the results:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify priors and model options</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>speciesModelConif<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Species =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.1</span>),</span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))</span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>speciesModelConif<span class="sc">$</span><span class="fu">priorsFixed</span>(<span class="at">Effect =</span> <span class="st">'Intercept'</span>,</span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>                         <span class="at">mean.linear =</span> <span class="dv">0</span>, </span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>                         <span class="at">prec.linear =</span> <span class="fl">0.1</span>)</span>
-<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>speciesModelConif<span class="sc">$</span><span class="fu">specifyRandom</span>(</span>
-<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesGroup =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"iid"</span>, </span>
-<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>                      <span class="at">hyper =</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
-<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>                                               <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))),</span>
-<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIntercepts =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">'pc.prec'</span>,</span>
-<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>                           <span class="at">param =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>)))</span>
-<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>modelOptions <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">control.inla =</span> <span class="fu">list</span>(<span class="at">int.strategy =</span> <span class="st">'eb'</span>, <span class="at">diagonal =</span> <span class="fl">0.1</span>), </span>
-<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>                     <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">safe =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the model</span></span>
-<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>speciesEstConif <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesModelConif, </span>
-<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a>                      <span class="at">options =</span> modelOptions)</span>
-<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Examine the results</span></span>
-<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(speciesEstConif)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Summary of 'modSpecies' object:
+<p>You should see above that the <code>Setophaga_magnolia_canopy</code> component has been removed from the model.</p>
+<p>As we are using the previously defined <code>speciesModelReplicate</code> model, the priors are already specified in the model, so we can simply fit it and examine the results:</p>
+<pre class="{rspecies-spec fit}"><code># Fit the model
+speciesSpecCovEst &lt;- fitISDM(data = speciesSpecCovModel, 
+                             options = modelOptions)
 
-inlabru version: 2.10.1
-INLA version: 24.06.27
-
-Types of data modelled:
-                                    
-eBird                   Present only
-BBA                  Present absence
-BBS                  Present absence
-
-Summary of the fixed effects for the species:
-
-Summary for Setophaga_caerulescens:
-                                                 mean         sd  0.025quant
-Setophaga_caerulescens_elevation         0.5326446292 0.04981148  0.43501591
-Setophaga_caerulescens_canopy            0.3821316954 0.04031566  0.30311446
-Setophaga_caerulescens_random_intercept -0.0007048562 0.02908976 -0.05771974
-                                             0.5quant 0.975quant          mode
-Setophaga_caerulescens_elevation         0.5326446292 0.63027335  0.5326446292
-Setophaga_caerulescens_canopy            0.3821316954 0.46114893  0.3821316954
-Setophaga_caerulescens_random_intercept -0.0007048562 0.05631003 -0.0007048562
-                                                 kld
-Setophaga_caerulescens_elevation        8.254325e-15
-Setophaga_caerulescens_canopy           0.000000e+00
-Setophaga_caerulescens_random_intercept 3.533093e-17
-
-Summary for Setophaga_magnolia:
-                                            mean         sd  0.025quant
-Setophaga_magnolia_elevation        -0.248227168 0.05772269 -0.36136155
-Setophaga_magnolia_canopy            0.031416179 0.03233922 -0.03196753
-Setophaga_magnolia_conif_cover       0.130830160 0.01761630  0.09630284
-Setophaga_magnolia_random_intercept  0.002006224 0.02908603 -0.05500135
-                                        0.5quant  0.975quant         mode
-Setophaga_magnolia_elevation        -0.248227168 -0.13509278 -0.248227168
-Setophaga_magnolia_canopy            0.031416179  0.09479989  0.031416179
-Setophaga_magnolia_conif_cover       0.130830160  0.16535748  0.130830160
-Setophaga_magnolia_random_intercept  0.002006224  0.05901380  0.002006224
-                                             kld
-Setophaga_magnolia_elevation        2.170299e-16
-Setophaga_magnolia_canopy           2.005444e-17
-Setophaga_magnolia_conif_cover      3.179512e-15
-Setophaga_magnolia_random_intercept 1.034010e-16
-
-Summary for Setophaga_fusca:
-                                         mean         sd  0.025quant
-Setophaga_fusca_elevation         0.322825365 0.04612311  0.23242573
-Setophaga_fusca_canopy            0.202543034 0.03269655  0.13845897
-Setophaga_fusca_conif_cover       0.156086339 0.01494148  0.12680158
-Setophaga_fusca_random_intercept -0.001301174 0.02908930 -0.05831515
-                                     0.5quant 0.975quant         mode
-Setophaga_fusca_elevation         0.322825365  0.4132250  0.322825365
-Setophaga_fusca_canopy            0.202543034  0.2666271  0.202543034
-Setophaga_fusca_conif_cover       0.156086339  0.1853711  0.156086339
-Setophaga_fusca_random_intercept -0.001301174  0.0557128 -0.001301174
-                                          kld
-Setophaga_fusca_elevation        1.900014e-15
-Setophaga_fusca_canopy           0.000000e+00
-Setophaga_fusca_conif_cover      0.000000e+00
-Setophaga_fusca_random_intercept 7.495978e-17</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Time used:
-    Pre = 0.87, Running = 1.12, Post = 0.0366, Total = 2.02 
-Random effects:
-  Name    Model
-    speciesShared SPDE2 model
-   Species_name_intercepts IID model
-
-Model hyperparameters:
-                                          mean       sd 0.025quant 0.5quant
-Range for speciesShared                  87.77 8.56e+00     72.500    87.23
-Stdev for speciesShared                   1.07 5.40e-02      0.964     1.06
-Precision for Species_name_intercepts 19452.87 2.24e+05     32.318  1302.86
-                                      0.975quant  mode
-Range for speciesShared                 1.06e+02 85.90
-Stdev for speciesShared                 1.18e+00  1.06
-Precision for Species_name_intercepts   1.22e+05 45.39
-
-Deviance Information Criterion (DIC) ...............: -127683.60
-Deviance Information Criterion (DIC, saturated) ....: -128925.70
-Effective number of parameters .....................: -143542.00
-
-Watanabe-Akaike information criterion (WAIC) ...: 47953.90
-Effective number of parameters .................: 15239.90
-
-Marginal log-Likelihood:  -80568.09 
- is computed 
-Posterior summaries for the linear predictor and the fitted values are computed
-(Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
-</div>
-</div>
-<p>In the summary output, pay particular attention to the coefficients for the coniferous forest cover. You should see effects for <em>S. fusca</em> and <em>S. magnolia</em>, but not for <em>S. caerulescens</em>. Compare the magnitude and direction of these effects to what we know about these species’ habitat preferences.</p>
+# Examine the results
+summary(speciesSpecCovEst)</code></pre>
+<p>Pay particular attention to the coefficients for the canopy cover. You should see effects for <em>S. caerulescens</em> but not for <em>S. magnoli</em>.</p>
 <p>This approach allows us to incorporate species-specific ecological knowledge into our multi-species model, potentially improving its biological realism and predictive power while reducing overfitting by leveraging prior knowledge.</p>
 </section>
-<section id="bias-correction" class="level2">
-<h2 class="anchored" data-anchor-id="bias-correction">Bias Correction</h2>
-<p>In ecological studies, sampling bias is a common issue, especially with citizen science data like eBird. Certain areas might be oversampled due to accessibility or popularity among birders. To account for this, we can incorporate a bias field into our model. This is particularly important for improving predictions based on potentially biased data sources. We can add a bias field to some of the datasets using<code>$addBias()</code>.</p>
+<section id="bias-correction" class="level1">
+<h1>Bias Correction</h1>
+<p>As in the previous vignette, we can estimate a bias field for datasets that may have significant bias such as eBird. The estimation of this should be significantly better in the multi-species model compared to the independent models as we are leveraging observations across species to estimate a common bias field. As before, the dataset bias field can be specified using the <code>$addBias()</code> slot function.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add bias field to eBird data</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>speciesModel<span class="sc">$</span><span class="fu">addBias</span>(<span class="at">datasetNames =</span> <span class="st">'eBird'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add bias field to eBird data</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>speciesModelReplicate<span class="sc">$</span><span class="fu">addBias</span>(<span class="at">datasetNames =</span> <span class="st">'eBird'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Turning copyModel off since the number of datasets specified is less than 2.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>speciesModel<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Bias =</span> <span class="cn">TRUE</span>, </span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>),</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit model with bias correction</span></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>biasEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesModel, <span class="at">options =</span> modelOptions)</span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Make predictions</span></span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>pred_bias <span class="ot">&lt;-</span> <span class="fu">predict</span>(biasEst,</span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>                     <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>                     <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare predictions</span></span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesPredictions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>speciesModelReplicate<span class="sc">$</span><span class="fu">specifySpatial</span>(<span class="at">Bias =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">prior.sigma =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>),</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">prior.range =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="fl">0.1</span>))</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit model with bias correction</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>biasEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> speciesModelReplicate, <span class="at">options =</span> modelOptions)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Make predictions</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>BiaspredSpatial <span class="ot">&lt;-</span> <span class="fu">predict</span>(biasEst,</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>                     <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>                     <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare predictions</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesReplicatePredSpat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="SetophagaExercise3_files/figure-html/bias%20mod%20specify%20&amp;%20fit%20&amp;%20pred%20spat-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pred_bias)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(BiaspredSpatial)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-15-2.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="SetophagaExercise3_files/figure-html/bias%20mod%20specify%20&amp;%20fit%20&amp;%20pred%20spat-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -1126,27 +752,28 @@ Posterior summaries for the linear predictor and the fitted values are computed
 <p>These plots allow us to compare predictions with and without bias correction. Look for areas where the predictions differ significantly, as these may indicate regions where sampling bias has a strong influence on the model.</p>
 <p>We expect the citizen science data (i.e., eBird) to be highly correlated with population density. We can check whether the model identified that pattern by predicting the estimated bias field alone using the argument <code>bias = TRUE</code> in the <code>predict</code> function.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># predict just the bias field</span></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>pred_bias2 <span class="ot">&lt;-</span> <span class="fu">predict</span>(biasEst,</span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">bias =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="co"># generate map of the estimated eBird dataset bias</span></span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>plot_eBird_bias <span class="ot">&lt;-</span> <span class="fu">plot</span>(pred_bias2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># predict just the bias field</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>biasPredBias <span class="ot">&lt;-</span> <span class="fu">predict</span>(biasEst,</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">bias =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>                      <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="co"># generate map of the estimated eBird dataset bias</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>plot_eBird_bias <span class="ot">&lt;-</span> <span class="fu">plot</span>(biasPredBias) <span class="sc">+</span> </span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Prediction of mean for</span><span class="sc">\n</span><span class="st">eBird_biasField bias field"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="SetophagaExercise3_files/figure-html/bias%20mod%20pred%20bias-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>Now, we will import population density data downloaded plot/compare this with the estimated eBird bias.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>pa_pop <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="fu">here</span>(<span class="st">"Data/Vignette_setophaga/PA_pop_density.shp"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>pa_pop <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="fu">here</span>(<span class="st">"Data/Vignette_setophaga/PA_pop_density.shp"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `PA_pop_density' from data source 
-  `/Users/philism/Documents/PointedSDMs_Workshop/Data/Vignette_setophaga/PA_pop_density.shp' 
+  `C:\Users\RonTogunov\Research\PointedSDMs_Workshop\Data\Vignette_setophaga\PA_pop_density.shp' 
   using driver `ESRI Shapefile'
 Simple feature collection with 3218 features and 7 fields (with 1 geometry empty)
 Geometry type: MULTIPOLYGON
@@ -1154,19 +781,17 @@ Dimension:     XY
 Bounding box:  xmin: -80.51989 ymin: 39.7198 xmax: -74.68952 ymax: 42.26986
 Geodetic CRS:  NAD83</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># map log population density</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>plot_pap_pop <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(pa_pop) <span class="sc">+</span></span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> density), <span class="at">color =</span> <span class="cn">NA</span>, <span class="at">size =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>(</span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">option =</span> <span class="st">"plasma"</span>,</span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">trans =</span> <span class="st">"log"</span>,</span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">100</span>, <span class="dv">1000</span>),</span>
-<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"10"</span>, <span class="st">"100"</span>, <span class="st">"1,000"</span>),</span>
-<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Population per sq km"</span></span>
-<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>  ) </span>
-<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a><span class="co"># plot together</span></span>
-<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>plot_eBird_bias <span class="sc">+</span> plot_pap_pop</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># map log population density</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>plot_pap_pop <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(pa_pop) <span class="sc">+</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> density), <span class="at">color =</span> <span class="cn">NA</span>, <span class="at">size =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>(</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">trans =</span> <span class="st">"log"</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Population/nper sq km"</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span> </span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Population density"</span>)</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="co"># plot together</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>plot_eBird_bias <span class="sc">+</span> plot_pap_pop</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in scale_fill_gradientn(colours = viridisLite::viridis(256, alpha, :
 log-2.718282 transformation introduced infinite values.</code></pre>
@@ -1174,51 +799,165 @@ log-2.718282 transformation introduced infinite values.</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="SetophagaExercise3_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="SetophagaExercise3_files/figure-html/bias%20mod%20plot%20bias%20&amp;%20popden-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>This plot shows the estimated spatial pattern of bias in the eBird data. Areas with higher values indicate regions where eBird data might over represent species occurrences due to increased sampling effort or other biases. By comparing these plots, we can see how well the estimated bias field corresponds to human population density. This can help validate our bias correction and provide insights into the spatial patterns of sampling effort in citizen science data.</p>
 </section>
-<section id="conclusion" class="level2">
-<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
-<p>In this workshop, we’ve explored:</p>
-<ul>
-<li>Setting up multi-species iSDMs</li>
-<li>Comparing models with different spatial structures</li>
-<li>Examining species-specific responses to environmental variables</li>
-<li>Correcting for sampling bias</li>
-<li>Visualizing prediction uncertainty</li>
-</ul>
-<p>These tools allow for rich ecological insights and more robust species distribution modeling.</p>
-</section>
+<section id="supplementary-activities" class="level1">
+<h1>Supplementary activities</h1>
+<p>In this workshop, we’ve explored various ways of specifying multi-species models, sharing different parts of the spatial field or covariates, estimating sampling biases, and generating different predictions maps. The following supplementary activities explore some of these themes in greater depth.</p>
 <section id="compare-models-predict-distribution" class="level2">
 <h2 class="anchored" data-anchor-id="compare-models-predict-distribution">Compare models Predict distribution</h2>
+<p>Given the many ways of specifying models for the same data, we may need to test competing models to identify the most parsimonious ones. This can be done using the model deviance information criterion (<strong>DIC</strong>). DIC is often preferred over Akaike information criterion (AIC) in Bayesian hierarchical models as it also accounts for the posterior distribution of the parameters. Similar to AIC, lower values are better – the common rule of thumb that a difference (<span class="math inline">\(\delta\)</span>DIC) of &lt;2 is considered indicating minimal evidence that the model with lower DIC is better, <span class="math inline">\(\delta\)</span>DIC 2-5 suggests moderate evidence, and <span class="math inline">\(\delta\)</span>DIC &gt;5 is considered substantial evidence. We can extract a fitted model’s DIC as follows:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare models</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>speciesEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare models</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>speciesSharedEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -127708.2</code></pre>
+<pre><code>[1] -95628.02</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>speciesSharedEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>speciesReplicateEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -123639.7</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>speciesCopyEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] -129936.8</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>speciesEstConif<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] -127683.6</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>biasEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] -129441.6</code></pre>
+<pre><code>[1] -97460.79</code></pre>
 </div>
 </div>
-<p>Interpret the DIC values - which model is preferred and why?</p>
+<p>Importantly, we can only compare DIC values for models with the same observation data and the same mesh.</p>
+<p>Can you extract the DIC values for the other fitted models? Which model is preferred and why?</p>
+</section>
+<section id="model-predictions" class="level2">
+<h2 class="anchored" data-anchor-id="model-predictions">Model predictions</h2>
+<p>In the <strong>Examining Species-Specific Responses</strong> section of the <strong>Shared spatial effect</strong> model, we predicted and mapped the combined covariate effects by specifying all the covariates for the argument <code>covariates = speciesSharedEst$spatCovs$name</code>. If we define the <code>covariates</code> argument as any subset of the used spatial covariates, we can explore any specific covariates effects separately as desired. Can you modify the following code to predict effect of one of the covariates in one of the models?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>fittedModel <span class="ot">&lt;-</span> ???</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>modelPred <span class="ot">&lt;-</span> <span class="fu">predict</span>(fittedModel,</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">spatial =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">covariates =</span> ???,</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(modelPred, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="mesh-specification-and-covariate-interpolation" class="level2">
+<h2 class="anchored" data-anchor-id="mesh-specification-and-covariate-interpolation">Mesh specification and covariate interpolation</h2>
+<p>The definition of a mesh can have a big effect on model performance. Most importantly, the scale and resolution of the mesh need to be fine enough to capture the variation and structure in the distribution of the focal species. In addition to this, if you have presence-only data, it also needs to be fine enough to capture the structure and variation of the spatial covariates. This is because from the perspective of the model, it only ‘sees’ the covariates at the observed points and the mesh nodes, and it is assumed that all locations between mesh nodes can be approximated using linear interpolation. If the heterogeneity of the covariates occur at a significantly finer scale than the mesh nodes, there could be a significant mismatch between the true covariate map and the one assumed by the model. Therefore, it’s crucial to understand how our environmental covariates are represented across the study area and how they appear through the mesh.</p>
+<p>The following code creates visualizations of our elevation and canopy cover data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Covariate raster aggregation</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>aggregationFactor <span class="ot">&lt;-</span> <span class="dv">1</span>  </span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="co"># define mesh</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>testMesh <span class="ot">&lt;-</span> <span class="fu">inla.mesh.2d</span>(<span class="at">boundary =</span> <span class="fu">inla.sp2segment</span>(PA), </span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>                         <span class="at">max.edge =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">1.24</span>) <span class="sc">*</span> <span class="dv">40</span>,</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>                         <span class="at">cutoff =</span> <span class="dv">10</span> <span class="sc">*</span> <span class="dv">10</span>,</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>                         <span class="at">offset =</span> <span class="fu">c</span>(<span class="fl">0.05</span>, <span class="fl">0.4</span>) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>                         <span class="at">crs =</span> <span class="fu">st_crs</span>(proj))</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="do">## extract and interpolate covariates</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># project covs to project proj</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>  covs <span class="ot">&lt;-</span> <span class="fu">project</span>(<span class="fu">aggregate</span>(covariates, <span class="at">fact =</span> aggregationFactor, <span class="at">fun=</span><span class="st">"mean"</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), proj)</span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extract mesh vertices</span></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>  vertices <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(testMesh<span class="sc">$</span>loc[, <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>])</span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(vertices) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)</span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Assuming your covariates are stored in a SpatRaster object named `covariates`</span></span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>  elevation_values <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">extract</span>(covs[[<span class="st">"elevation"</span>]], vertices)</span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>  canopy_values <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">extract</span>(covs[[<span class="st">"canopy"</span>]], vertices)</span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Combine the vertex coordinates with the extracted values</span></span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>  vertices<span class="sc">$</span>elevation <span class="ot">&lt;-</span> elevation_values[, <span class="dv">2</span>]</span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a>  vertices<span class="sc">$</span>canopy <span class="ot">&lt;-</span> canopy_values[, <span class="dv">2</span>]</span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Convert vertices to an sf object</span></span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a>  vertices_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(vertices, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>), <span class="at">crs =</span> <span class="fu">st_crs</span>(covariates))</span>
+<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Get the triangles of the mesh</span></span>
+<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a>  triangles <span class="ot">&lt;-</span> testMesh<span class="sc">$</span>graph<span class="sc">$</span>tv</span>
+<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-31"><a href="#cb43-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create a grid of points over the study area for interpolation</span></span>
+<span id="cb43-32"><a href="#cb43-32" aria-hidden="true" tabindex="-1"></a>  ext <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">ext</span>(covs)</span>
+<span id="cb43-33"><a href="#cb43-33" aria-hidden="true" tabindex="-1"></a>  centers <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(<span class="fu">seq</span>(ext[<span class="dv">1</span>], ext[<span class="dv">2</span>],<span class="at">length.out=</span> <span class="dv">200</span>),<span class="fu">seq</span>(ext[<span class="dv">3</span>], ext[<span class="dv">4</span>],<span class="at">length.out=</span> <span class="dv">100</span>)) </span>
+<span id="cb43-34"><a href="#cb43-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(centers) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">'x'</span>,<span class="st">'y'</span>)</span>
+<span id="cb43-35"><a href="#cb43-35" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Convert to data.frame</span></span>
+<span id="cb43-36"><a href="#cb43-36" aria-hidden="true" tabindex="-1"></a>  centers_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(centers)</span>
+<span id="cb43-37"><a href="#cb43-37" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Convert to sf object</span></span>
+<span id="cb43-38"><a href="#cb43-38" aria-hidden="true" tabindex="-1"></a>  study_area <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(centers_df, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>), <span class="at">crs =</span> <span class="fu">crs</span>(covs)) <span class="sc">%&gt;%</span> </span>
+<span id="cb43-39"><a href="#cb43-39" aria-hidden="true" tabindex="-1"></a>    <span class="co"># remove points outside of shape</span></span>
+<span id="cb43-40"><a href="#cb43-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">st_crop</span>(PA)</span>
+<span id="cb43-41"><a href="#cb43-41" aria-hidden="true" tabindex="-1"></a>  grid_points <span class="ot">&lt;-</span> <span class="fu">st_coordinates</span>(study_area) </span>
+<span id="cb43-42"><a href="#cb43-42" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-43"><a href="#cb43-43" aria-hidden="true" tabindex="-1"></a>  <span class="co"># replace NAs</span></span>
+<span id="cb43-44"><a href="#cb43-44" aria-hidden="true" tabindex="-1"></a>  vertices<span class="sc">$</span>elevation[<span class="fu">is.na</span>(vertices<span class="sc">$</span>elevation)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb43-45"><a href="#cb43-45" aria-hidden="true" tabindex="-1"></a>  vertices<span class="sc">$</span>canopy[<span class="fu">is.na</span>(vertices<span class="sc">$</span>canopy)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb43-46"><a href="#cb43-46" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-47"><a href="#cb43-47" aria-hidden="true" tabindex="-1"></a>  <span class="do">##2D barycentric interpolation at points Xi for a function with values f measured at locations X</span></span>
+<span id="cb43-48"><a href="#cb43-48" aria-hidden="true" tabindex="-1"></a>  <span class="co">#For N-D interpolation simply replace tsearch with tsearchn and modify the sparse matrix definition to have non-zero values in the right spots.</span></span>
+<span id="cb43-49"><a href="#cb43-49" aria-hidden="true" tabindex="-1"></a>  interp.barycentric <span class="ot">&lt;-</span> <span class="cf">function</span>(X,f,Xi){</span>
+<span id="cb43-50"><a href="#cb43-50" aria-hidden="true" tabindex="-1"></a>    dn <span class="ot">&lt;-</span> <span class="fu">delaunayn</span>(X)</span>
+<span id="cb43-51"><a href="#cb43-51" aria-hidden="true" tabindex="-1"></a>    tri <span class="ot">&lt;-</span> <span class="fu">tsearch</span>(X[,<span class="dv">1</span>],X[,<span class="dv">2</span>],dn,Xi[,<span class="dv">1</span>],Xi[,<span class="dv">2</span>],<span class="at">bary=</span>T)</span>
+<span id="cb43-52"><a href="#cb43-52" aria-hidden="true" tabindex="-1"></a>    <span class="co">#For each line in Xi, defines which points in X contribute to the interpolation</span></span>
+<span id="cb43-53"><a href="#cb43-53" aria-hidden="true" tabindex="-1"></a>    active <span class="ot">&lt;-</span> dn[tri<span class="sc">$</span>idx,]</span>
+<span id="cb43-54"><a href="#cb43-54" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Filter out NAs from tri$idx and active</span></span>
+<span id="cb43-55"><a href="#cb43-55" aria-hidden="true" tabindex="-1"></a>    valid_idx <span class="ot">&lt;-</span> <span class="fu">is.na</span>(tri<span class="sc">$</span>idx)</span>
+<span id="cb43-56"><a href="#cb43-56" aria-hidden="true" tabindex="-1"></a>    active[valid_idx, ] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb43-57"><a href="#cb43-57" aria-hidden="true" tabindex="-1"></a>    tri<span class="sc">$</span>p[valid_idx, ] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb43-58"><a href="#cb43-58" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb43-59"><a href="#cb43-59" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Define the interpolation as a sparse matrix operation</span></span>
+<span id="cb43-60"><a href="#cb43-60" aria-hidden="true" tabindex="-1"></a>    M <span class="ot">&lt;-</span> <span class="fu">sparseMatrix</span>(<span class="at">i =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(Xi), <span class="at">each =</span> <span class="dv">3</span>), <span class="at">j =</span> <span class="fu">as.numeric</span>(<span class="fu">t</span>(active)), <span class="at">x =</span> <span class="fu">as.numeric</span>(<span class="fu">t</span>(tri<span class="sc">$</span>p)), <span class="at">dims =</span> <span class="fu">c</span>(<span class="fu">nrow</span>(Xi), <span class="fu">length</span>(f)))</span>
+<span id="cb43-61"><a href="#cb43-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.numeric</span>(M <span class="sc">%*%</span> f)</span>
+<span id="cb43-62"><a href="#cb43-62" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb43-63"><a href="#cb43-63" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-64"><a href="#cb43-64" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Interpolate elevation values</span></span>
+<span id="cb43-65"><a href="#cb43-65" aria-hidden="true" tabindex="-1"></a>  interpolated_elevation <span class="ot">&lt;-</span> <span class="fu">interp.barycentric</span>(<span class="fu">as.matrix</span>(vertices[, <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)]), vertices<span class="sc">$</span>elevation, grid_points)</span>
+<span id="cb43-66"><a href="#cb43-66" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-67"><a href="#cb43-67" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Interpolate canopy values</span></span>
+<span id="cb43-68"><a href="#cb43-68" aria-hidden="true" tabindex="-1"></a>  interpolated_canopy <span class="ot">&lt;-</span> <span class="fu">interp.barycentric</span>(<span class="fu">as.matrix</span>(vertices[, <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)]), vertices<span class="sc">$</span>canopy, grid_points)</span>
+<span id="cb43-69"><a href="#cb43-69" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-70"><a href="#cb43-70" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Combine the interpolated points with the values</span></span>
+<span id="cb43-71"><a href="#cb43-71" aria-hidden="true" tabindex="-1"></a>  interpolated_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb43-72"><a href="#cb43-72" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> grid_points[, <span class="dv">1</span>],</span>
+<span id="cb43-73"><a href="#cb43-73" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> grid_points[, <span class="dv">2</span>],</span>
+<span id="cb43-74"><a href="#cb43-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">elevation =</span> interpolated_elevation,</span>
+<span id="cb43-75"><a href="#cb43-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">canopy =</span> interpolated_canopy</span>
+<span id="cb43-76"><a href="#cb43-76" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb43-77"><a href="#cb43-77" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-78"><a href="#cb43-78" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Convert to sf object</span></span>
+<span id="cb43-79"><a href="#cb43-79" aria-hidden="true" tabindex="-1"></a>  interpolated_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(interpolated_df, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>), <span class="at">crs =</span> <span class="fu">st_crs</span>(covariates))</span>
+<span id="cb43-80"><a href="#cb43-80" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: [aggregate] all values in argument 'fact' are 1, nothing to do</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="do">## plot interpolated covariates</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Plot observed &amp; interpolated elevation</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  p1obs <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_spatraster</span>(<span class="at">data =</span> covs<span class="sc">$</span>elevation) <span class="sc">+</span> </span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Observed Elevation"</span>)</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  p1int <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(interpolated_df) <span class="sc">+</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> elevation)) <span class="sc">+</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Interpolated Elevation"</span>, <span class="at">fill =</span> <span class="st">"Elevation"</span>)</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Plot observed &amp; interpolated canopy </span></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  p2obs <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_spatraster</span>(<span class="at">data =</span> covs<span class="sc">$</span>canopy) <span class="sc">+</span> </span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Observed Canopy"</span>)</span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>  p2int <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(interpolated_df) <span class="sc">+</span></span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> canopy)) <span class="sc">+</span></span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Interpolated Canopy"</span>, <span class="at">fill =</span> <span class="st">"Canopy"</span>)</span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Display plots side by side</span></span>
+<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a>p1obs <span class="sc">+</span> p1int <span class="sc">+</span> </span>
+<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>  p2obs <span class="sc">+</span> p2int <span class="sc">&amp;</span> </span>
+<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="SetophagaExercise3_files/figure-html/visualise%20cov%20interpolation-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The plots on the left are the covariates as inputted in the model, and the plots on the right show the covariates as linearly interpolated via the mesh. Ideally, we want the interpolated mesh to resemble the observed covariates. From the initial fit, we can see that elevation is somewhat accurately reflected, however, due to the greater degree of spatial variation in the canopy cover, there is a bigger mismatch with the interpolated values. There are two ways to try to improve this. First, we can increase the resolution of the mesh by decreasing the first value of the <code>max.edge</code> argument in <code>inla.mesh.2d()</code>. Unfortunately, this finer mesh can drastically increase the computation time, and may be overkill if it is already finer than the spatial structure of the species intensity. The second option is to decrease the resolution of the covariates using <code>terra::aggregate()</code>; the <code>fact</code> argument represents the number of cells in each direction (horizontally and vertically) that are summarised together using the function defined by the <code>fun</code> argument (<code>"mean"</code> in the code above). Experiment with changing the mesh resolution and raster aggregation to see the effect on the interpolated covariates.</p>
+<p>These visualizations help us understand the spatial patterns of our environmental covariates and how well they’re represented by our mesh structure. This is important because the accuracy of our species distribution predictions will depend partly on how well we capture environmental variation across the landscape.</p>
 </section>
 </section>
 
