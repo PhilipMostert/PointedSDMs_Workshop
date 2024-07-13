@@ -1,6 +1,6 @@
 ---
 title: "PointedSDMs Workshop"
-author: "Philip Mostert, Ron Tugonov, Kwaku Adjei, Bob O'Hara"
+author: "Philip Mostert, Ron Togunov, Kwaku Adjei, Bob O'Hara"
 institute: 'ISEC 2024, Swansea, Wales'
 date: '13 July 2024'
 format: revealjs

@@ -1,7 +1,7 @@
 ---
 title: 'Presentation 4:'
-subtitle: "Multi-Species Integrated Species Distribution Modeling in *PointedSDMs*\n\nISEC 2024 -- Swansea"
-author: "Ron R Togunov, Philip Mostert, Bob O'Hara"
+subtitle: "Multispecies Integrated Species Distribution Modeling in *PointedSDMs*\n\nISEC 2024 -- Swansea"
+author: "Ron R. Togunov, Philip Mostert, Bob O'Hara"
 institute: 'Norwegian University of Science and Technology'
 date: '13 July 2024'
 output: beamer_presentation
@@ -22,26 +22,35 @@ opts_chunk$set(tidy.opts=list(width.cutoff=20),tidy=TRUE)
 
 ```
 
-## Introduction to Multi-Species ISDMs
+## Introduction to Multispecies ISDMs
 
+::: incremental
 -   Extend single-species models to analyze multiple species simultaneously
 -   Potential benefits:
-    -   Improved estimates for rare species
-    -   Better understanding of community-level patterns
+    -   Sharing information across species
     -   More efficient use of data
+    -   Improved bias estimation
+    -   Improved estimates (especially for rare species)
+:::
 
-## The *Setophaga* Example
+## Multispecies model structure
 
--   Three warbler species in Pennsylvania:
-    -   *Setophaga fusca* (Blackburnian Warbler)
-    -   *Setophaga caerulescens* (Black-throated Blue Warbler)
-    -   *Setophaga magnolia* (Magnolia Warbler)
+::: incremental
+-   Sharing spatial field & hyperparameters
+    1.  Both shared across species 
+       - Identical random field
+    2.  Shared hyperparameters & independent field
+       - Similar spatial structure, unique distributions
+    3.  Neither are shared 
+       - Unique spatial structure & distribution
+-   Species-specific covariate effects
+-   Dataset bias field
+::: 
 
--   Data sources: eBird, BBS, BBA
--   Environmental covariates: Elevation, Canopy cover, Coniferous forest cover
 
-## Model Initialization
+## Multispecies: Spatial field structure
 
+- Initialise model
 ```{r eval = FALSE}
 speciesModel <- startSpecies(SetohagaData, 
                              Boundary = PA, 
@@ -49,73 +58,64 @@ speciesModel <- startSpecies(SetohagaData,
                              Mesh = mesh,
                              responsePA = 'NPres', 
                              trialsPA = 'Trials',
-                             pointsSpatial = NULL,
                              spatialCovariates = covariates, 
-                             speciesName = 'Species_name')
+                             speciesName = 'Species_name',
+                             pointsSpatial = NULL,
+                             speciesSpatial = ...)
 ```
 
-## Spatial Effect Structures
-
-1. Independent (Replicate)
-1. Shared
-1. Copied
-
-
-## Independent Spatial Effects
-- Default multi-species model assumes each species has unique spatial field
-  -  i.e., each treated as a `replicate`
-
-```{r eval = FALSE}
-startSpecies(..., speciesSpatial = "replicate", ...)
-```
-
-## Shared Spatial Effects
-- If species are assumed to have a common spatial field, we can specify it is `shared`
-
-```{r eval = FALSE}
-startSpecies(..., speciesSpatial = "shared", ...)
-```
-
-## Copied Spatial Effects
-```{r eval = FALSE}
-startSpecies(..., speciesSpatial = "copy", ...)
-```
+1.  Shared both hyperparameters & field across species
+    - `speciesSpatial = "share"`
+2.  Shared hyperparameters & independent field (`intSDM` default)
+    - `speciesSpatial = "replicate"`
+3.  Independent hyperparameters & field  
+    - `speciesSpatial = "copy"`
 
 ## Species-Specific Covariate Effects
+
+-   Effect of covariate is specified uniquely across species
+    - A covariate is applicable to some species
+    - Test competing models hypothesis
+    - Reduce overfitting 
+    
 ```{r eval = FALSE}
-speciesModelConif <- startSpecies(..., 
-                                  spatialCovariates = all_covariates, 
-                                  speciesEnvironment = TRUE)
-speciesModelConif$changeComponents(
-  removeComponent = "Setophaga_caerulescens_conif_cover")
+# View components in current model
+speciesModelConif$changeComponents()
+# Remove specified components
+speciesModelConif$changeComponents(removeComponent = "Setophaga_caerulescens_canopy")
 ```
 
-## Bias Correction in Multi-Species Models
+## Bias Correction in Multispecies Models
+
+-   Leverage information across species for improved bias estimation
 ```{r eval = FALSE}
 speciesModel$addBias(datasetNames = 'eBird')
-biasEst <- fitISDM(data = speciesModel, options = modelOptions)
-plot(predict(biasEst, ..., bias = TRUE))
 ```
 
-## Model Comparison
+## Model Prediction
+- Predicting only spatial effect
 ```{r eval = FALSE}
-CopyspeciesEst$dic$dic
-speciesSharedEst$dic$dic
-speciesCopyEst$dic$dic
-speciesEstConif$dic$dic
-biasEst$dic$dic
+predict(..., spatial = TRUE)
 ```
 
-## Ecological Implications
--  How do spatial effect structures affect species predictions?
--  What can we learn from species-specific covariate effects?
--  How does bias correction impact our understanding of species distributions?
+- Predicting only covariate effect
+```{r eval = FALSE}
+predict(..., spatial = FALSE, covariates = model$spatCovs$name)
+```
 
-## Next Steps
+- Predicting covariate & spatial effects
+```{r eval = FALSE}
+predict(..., predictor = TRUE)
+```
 
--  Questions and discussions
--  Hands-on exercise: Fitting multi-species models to your own data
+- Predicting bias field
+```{r eval = FALSE}
+predict(..., bias = TRUE)
+```
 
-## References
+## Supplementary activities
+
+-   Compare various covariate prediction
+-   Explore relationship between resolution/structure of covariates and INLA mesh
 
 \tiny

@@ -1,5 +1,5 @@
 ---
-title: "Multi-Species Integrated Species Distribution Modeling Workshop"
+title: "Multispecies Integrated Species Distribution Modeling Workshop"
 author: "Ron R Togunov, Philip Mostert, Bob O'Hara"
 date: "`r Sys.Date()`"
 bibliography: '`r system.file("References.bib", package="PointedSDMs")`'
@@ -9,9 +9,9 @@ format: html
 
 # Introduction
 
-Multi-species integrated Species Distribution Models (iSDMs) offer powerful tools for ecological analysis. These models allow us to simultaneously analyze multiple species, potentially improving our understanding of species distributions and the factors that influence them. By default, these models share range, standard deviation, and precision parameters across species, which can lead to more robust estimates, especially for rare species or those with limited data. Additionally, this approach can help in correcting for sampling bias, a common issue in ecological data collection.
+Multispecies integrated Species Distribution Models (iSDMs) offer powerful tools for ecological analysis. These models allow us to simultaneously analyze multiple species, potentially improving our understanding of species distributions and the factors that influence them. By default, these models share range, standard deviation, and precision parameters across species, which can lead to more robust estimates, especially for rare species or those with limited data. Additionally, this approach can help in correcting for sampling bias, a common issue in ecological data collection.
 
-This workshop aims to guide you through the process of setting up and interpreting multi-species iSDMs using the `PointedSDMs` package. We'll explore various modeling approaches and discuss their ecological implications.
+This workshop aims to guide you through the process of setting up and interpreting multispecies iSDMs using the `PointedSDMs` package. We'll explore various modeling approaches and discuss their ecological implications.
 
 # *Setophaga* example
 ## Data Preparations
@@ -54,9 +54,9 @@ To speed things up for the workshop, we will model just two of the three species
 SetophagaData <- map(SetophagaData_full, \(.x) filter(.x, Species_name %in% c("Setophaga_caerulescens", "Setophaga_magnolia")))
 ```
 
-## Building the Multi-Species Model
+## Building the Multispecies Model
 
-Now that we've prepared our data, we're ready to set up our multi-species model. One of the key decisions we have to make is in what information is shared across species (i.e., what parameters are shared among the species). Specifically, if our species $i$ intensity field $\lambda_s(\bf{s})$ is defined as:
+Now that we've prepared our data, we're ready to set up our multispecies model. One of the key decisions we have to make is in what information is shared across species (i.e., what parameters are shared among the species). Specifically, if our species $i$ intensity field $\lambda_s(\bf{s})$ is defined as:
 
 $$
 \lambda_i(\bf{s}) = \alpha_i + \zeta_i(\bf{s}) \\
@@ -71,7 +71,7 @@ where $\zeta_i(\bf{s})$ is a species level spatial effect with covariance matrix
 
 ### Shared spatial effect: `speciesSpatial = "shared"` 
 
-We use the `startSpecies()` to initialise the multi-species ISDM. Many of the arguments are the same as in the `startISDM()` we used in the previous vignette. Additional arguments include: `speciesIntercept` to control the intercept for the species, `speciesEnvironment` to control the environmental effects for the species (species-specific effects or shared across species), and `speciesSpatial` to control what information in the spatial effect is shared across species.  
+We use the `startSpecies()` to initialise the multispecies ISDM. Many of the arguments are the same as in the `startISDM()` we used in the previous vignette. Additional arguments include: `speciesIntercept` to control the intercept for the species, `speciesEnvironment` to control the environmental effects for the species (species-specific effects or shared across species), and `speciesSpatial` to control what information in the spatial effect is shared across species.  
 
 The simplest model we can construct assumes that all species occurrence emerge from a common distribution. This is achieved by defining the `speciesSpatial` argument as `"shared"`:
 
@@ -91,13 +91,13 @@ We've also set `pointsSpatial = NULL` to simplify the model by not including dat
 
 #### Model Specification
 
-Again, the output of `speciesSpatial()` is an *R6* object, for which we can use the `?.$help()` slot function to view the other available slot functions and their documentationp
+Again, the output of `speciesSpatial()` is an *R6* object, for which we can use the `?.$help()` slot function to view the other available slot functions and their documentation
 
 ```{r species help, eval = FALSE}
 speciesModelShared$help()
 ```
 
-Plotting the multi-species model, shows the distribution by species rather than by dataset as in the previous vignette.
+Plotting the multispecies model, shows the distribution by species rather than by dataset as in the previous vignette.
 
 ```{r dataset plot}
 #| fig.width: 8 
@@ -362,11 +362,11 @@ summary(speciesSpecCovEst)
 
 Pay particular attention to the coefficients for the canopy cover. You should see effects for *S. caerulescens* but not for *S. magnoli*. 
 
-This approach allows us to incorporate species-specific ecological knowledge into our multi-species model, potentially improving its biological realism and predictive power while reducing overfitting by leveraging prior knowledge.
+This approach allows us to incorporate species-specific ecological knowledge into our multispecies model, potentially improving its biological realism and predictive power while reducing overfitting by leveraging prior knowledge.
 
 # Bias Correction
 
-As in the previous vignette, we can estimate a bias field for datasets that may have significant bias such as eBird. The estimation of this should be significantly better in the multi-species model compared to the independent models as we are leveraging observations across species to estimate a common bias field. As before, the dataset bias field can be specified using the `$addBias()` slot function.
+As in the previous vignette, we can estimate a bias field for datasets that may have significant bias such as eBird. The estimation of this should be significantly better in the multispecies model compared to the independent models as we are leveraging observations across species to estimate a common bias field. As before, the dataset bias field can be specified using the `$addBias()` slot function.
 
 ```{r bias mod specify & fit & pred spat}
 # Add bias field to eBird data
@@ -380,9 +380,9 @@ biasEst <- fitISDM(data = speciesModelReplicate, options = modelOptions)
 
 # Make predictions
 BiaspredSpatial <- predict(biasEst,
-                     data = fm_pixels(mesh = mesh, mask = PA),
-                     spatial = TRUE,
-                     n.samples = 100)
+                           data = fm_pixels(mesh = mesh, mask = PA),
+                           spatial = TRUE,
+                           n.samples = 100)
 
 # Compare predictions
 plot(speciesReplicatePredSpat)
@@ -396,9 +396,9 @@ We expect the citizen science data (i.e., eBird) to be highly correlated with po
 ```{r bias mod pred bias}
 # predict just the bias field
 biasPredBias <- predict(biasEst,
-                      data = fm_pixels(mesh = mesh, mask = PA),
-                      bias = TRUE,
-                      n.samples = 100)
+                        data = fm_pixels(mesh = mesh, mask = PA),
+                        bias = TRUE,
+                        n.samples = 100)
 # generate map of the estimated eBird dataset bias
 plot_eBird_bias <- plot(biasPredBias) + 
   labs(title = "Prediction of mean for\neBird_biasField bias field")
@@ -426,7 +426,7 @@ This plot shows the estimated spatial pattern of bias in the eBird data. Areas w
 
 # Supplementary activities
 
-In this workshop, we've explored various ways of specifying multi-species models, sharing different parts of the spatial field or covariates, estimating sampling biases, and generating different predictions maps. The following supplementary activities explore some of these themes in greater depth.
+In this workshop, we've explored various ways of specifying multispecies models, sharing different parts of the spatial field or covariates, estimating sampling biases, and generating different predictions maps. The following supplementary activities explore some of these themes in greater depth.
 
 ## Compare models Predict distribution
 
@@ -446,11 +446,11 @@ Can you extract the DIC values for the other fitted models? Which model is prefe
 In the **Examining Species-Specific Responses** section of the **Shared spatial effect** model, we predicted and mapped the combined covariate effects by specifying all the covariates for the argument `covariates = speciesSharedEst$spatCovs$name`. If we define the `covariates` argument as any subset of the used spatial covariates, we can explore any specific covariates effects separately as desired. Can you modify the following code to predict effect of one of the covariates in one of the models? 
 ```{r shared mod pred exercise, eval=FALSE}
 fittedModel <- ???
-modelPred <- predict(fittedModel,
-                     data = fm_pixels(mesh = mesh, mask = PA),
-                     spatial = FALSE,
-                     covariates = ???,
-                     n.samples = 100)
+  modelPred <- predict(fittedModel,
+                       data = fm_pixels(mesh = mesh, mask = PA),
+                       spatial = FALSE,
+                       covariates = ???,
+                       n.samples = 100)
 plot(modelPred, variable = c('mean'))
 ```
 
@@ -546,13 +546,13 @@ testMesh <- inla.mesh.2d(boundary = inla.sp2segment(PA),
 {
   # Plot observed & interpolated elevation
   p1obs <- ggplot() + geom_spatraster(data = covs$elevation) + 
-        labs(title = "Observed Elevation")
+    labs(title = "Observed Elevation")
   p1int <- ggplot(interpolated_df) +
     geom_tile(aes(x = x, y = y, fill = elevation)) +
     labs(title = "Interpolated Elevation", fill = "Elevation")
   # Plot observed & interpolated canopy 
   p2obs <- ggplot() + geom_spatraster(data = covs$canopy) + 
-        labs(title = "Observed Canopy")
+    labs(title = "Observed Canopy")
   p2int <- ggplot(interpolated_df) +
     geom_tile(aes(x = x, y = y, fill = canopy)) +
     labs(title = "Interpolated Canopy", fill = "Canopy")

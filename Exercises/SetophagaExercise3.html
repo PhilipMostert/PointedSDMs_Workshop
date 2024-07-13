@@ -9,7 +9,7 @@
 <meta name="author" content="Ron R Togunov, Philip Mostert, Bob O’Hara">
 <meta name="dcterms.date" content="2024-07-12">
 
-<title>Multi-Species Integrated Species Distribution Modeling Workshop</title>
+<title>Multispecies Integrated Species Distribution Modeling Workshop</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -110,7 +110,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Multi-Species Integrated Species Distribution Modeling Workshop</h1>
+<h1 class="title">Multispecies Integrated Species Distribution Modeling Workshop</h1>
 </div>
 
 
@@ -141,8 +141,8 @@ window.Quarto = {
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>Multi-species integrated Species Distribution Models (iSDMs) offer powerful tools for ecological analysis. These models allow us to simultaneously analyze multiple species, potentially improving our understanding of species distributions and the factors that influence them. By default, these models share range, standard deviation, and precision parameters across species, which can lead to more robust estimates, especially for rare species or those with limited data. Additionally, this approach can help in correcting for sampling bias, a common issue in ecological data collection.</p>
-<p>This workshop aims to guide you through the process of setting up and interpreting multi-species iSDMs using the <code>PointedSDMs</code> package. We’ll explore various modeling approaches and discuss their ecological implications.</p>
+<p>Multispecies integrated Species Distribution Models (iSDMs) offer powerful tools for ecological analysis. These models allow us to simultaneously analyze multiple species, potentially improving our understanding of species distributions and the factors that influence them. By default, these models share range, standard deviation, and precision parameters across species, which can lead to more robust estimates, especially for rare species or those with limited data. Additionally, this approach can help in correcting for sampling bias, a common issue in ecological data collection.</p>
+<p>This workshop aims to guide you through the process of setting up and interpreting multispecies iSDMs using the <code>PointedSDMs</code> package. We’ll explore various modeling approaches and discuss their ecological implications.</p>
 </section>
 <section id="setophaga-example" class="level1">
 <h1><em>Setophaga</em> example</h1>
@@ -155,9 +155,9 @@ window.Quarto = {
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>SetophagaData <span class="ot">&lt;-</span> <span class="fu">map</span>(SetophagaData_full, \(.x) <span class="fu">filter</span>(.x, Species_name <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Setophaga_caerulescens"</span>, <span class="st">"Setophaga_magnolia"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="building-the-multi-species-model" class="level2">
-<h2 class="anchored" data-anchor-id="building-the-multi-species-model">Building the Multi-Species Model</h2>
-<p>Now that we’ve prepared our data, we’re ready to set up our multi-species model. One of the key decisions we have to make is in what information is shared across species (i.e., what parameters are shared among the species). Specifically, if our species <span class="math inline">\(i\)</span> intensity field <span class="math inline">\(\lambda_s(\bf{s})\)</span> is defined as:</p>
+<section id="building-the-multispecies-model" class="level2">
+<h2 class="anchored" data-anchor-id="building-the-multispecies-model">Building the Multispecies Model</h2>
+<p>Now that we’ve prepared our data, we’re ready to set up our multispecies model. One of the key decisions we have to make is in what information is shared across species (i.e., what parameters are shared among the species). Specifically, if our species <span class="math inline">\(i\)</span> intensity field <span class="math inline">\(\lambda_s(\bf{s})\)</span> is defined as:</p>
 <p><span class="math display">\[
 \lambda_i(\bf{s}) = \alpha_i + \zeta_i(\bf{s}) \\
 \zeta_i(\bf{s}) \sim N(0, \sigma_i^2),
@@ -170,7 +170,7 @@ window.Quarto = {
 </ul>
 <section id="shared-spatial-effect-speciesspatial-shared" class="level3">
 <h3 class="anchored" data-anchor-id="shared-spatial-effect-speciesspatial-shared">Shared spatial effect: <code>speciesSpatial = "shared"</code></h3>
-<p>We use the <code>startSpecies()</code> to initialise the multi-species ISDM. Many of the arguments are the same as in the <code>startISDM()</code> we used in the previous vignette. Additional arguments include: <code>speciesIntercept</code> to control the intercept for the species, <code>speciesEnvironment</code> to control the environmental effects for the species (species-specific effects or shared across species), and <code>speciesSpatial</code> to control what information in the spatial effect is shared across species.</p>
+<p>We use the <code>startSpecies()</code> to initialise the multispecies ISDM. Many of the arguments are the same as in the <code>startISDM()</code> we used in the previous vignette. Additional arguments include: <code>speciesIntercept</code> to control the intercept for the species, <code>speciesEnvironment</code> to control the environmental effects for the species (species-specific effects or shared across species), and <code>speciesSpatial</code> to control what information in the spatial effect is shared across species.</p>
 <p>The simplest model we can construct assumes that all species occurrence emerge from a common distribution. This is achieved by defining the <code>speciesSpatial</code> argument as <code>"shared"</code>:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>speciesModelShared <span class="ot">&lt;-</span> <span class="fu">startSpecies</span>(SetophagaData, <span class="at">Boundary =</span> PA, </span>
@@ -185,11 +185,11 @@ window.Quarto = {
 <p>We’ve also set <code>pointsSpatial = NULL</code> to simplify the model by not including dataset-specific spatial effects.</p>
 <section id="model-specification" class="level4">
 <h4 class="anchored" data-anchor-id="model-specification">Model Specification</h4>
-<p>Again, the output of <code>speciesSpatial()</code> is an <em>R6</em> object, for which we can use the <code>?.$help()</code> slot function to view the other available slot functions and their documentationp</p>
+<p>Again, the output of <code>speciesSpatial()</code> is an <em>R6</em> object, for which we can use the <code>?.$help()</code> slot function to view the other available slot functions and their documentation</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>speciesModelShared<span class="sc">$</span><span class="fu">help</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Plotting the multi-species model, shows the distribution by species rather than by dataset as in the previous vignette.</p>
+<p>Plotting the multispecies model, shows the distribution by species rather than by dataset as in the previous vignette.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>speciesModelShared<span class="sc">$</span><span class="fu">plot</span>() <span class="sc">+</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
@@ -252,27 +252,27 @@ Summary of the fixed effects for the species:
 
 Summary for Setophaga_caerulescens:
                                                mean         sd 0.025quant
-Setophaga_caerulescens_elevation         0.25604775 0.04215660  0.1734223
-Setophaga_caerulescens_canopy            0.26827028 0.03094295  0.2076232
-Setophaga_caerulescens_random_intercept -0.07750988 0.01191079 -0.1008546
+Setophaga_caerulescens_elevation         0.25603969 0.04215623  0.1734150
+Setophaga_caerulescens_canopy            0.26826306 0.03094258  0.2076167
+Setophaga_caerulescens_random_intercept -0.07750652 0.01191055 -0.1008508
                                            0.5quant  0.975quant        mode kld
-Setophaga_caerulescens_elevation         0.25604775  0.33867317  0.25604775   0
-Setophaga_caerulescens_canopy            0.26827028  0.32891735  0.26827028   0
-Setophaga_caerulescens_random_intercept -0.07750988 -0.05416517 -0.07750988   0
+Setophaga_caerulescens_elevation         0.25603969  0.33866438  0.25603969   0
+Setophaga_caerulescens_canopy            0.26826306  0.32890941  0.26826306   0
+Setophaga_caerulescens_random_intercept -0.07750652 -0.05416227 -0.07750652   0
 
 Summary for Setophaga_magnolia:
                                           mean         sd 0.025quant   0.5quant
-Setophaga_magnolia_elevation        0.34059517 0.04308382 0.25615244 0.34059517
-Setophaga_magnolia_canopy           0.22407871 0.02941268 0.16643093 0.22407871
-Setophaga_magnolia_random_intercept 0.07750997 0.01191079 0.05416525 0.07750997
+Setophaga_magnolia_elevation        0.34058622 0.04308344 0.25614423 0.34058622
+Setophaga_magnolia_canopy           0.22407099 0.02941232 0.16642390 0.22407099
+Setophaga_magnolia_random_intercept 0.07750661 0.01191055 0.05416236 0.07750661
                                     0.975quant       mode kld
-Setophaga_magnolia_elevation         0.4250379 0.34059517   0
-Setophaga_magnolia_canopy            0.2817265 0.22407871   0
-Setophaga_magnolia_random_intercept  0.1008547 0.07750997   0</code></pre>
+Setophaga_magnolia_elevation         0.4250282 0.34058622   0
+Setophaga_magnolia_canopy            0.2817181 0.22407099   0
+Setophaga_magnolia_random_intercept  0.1008509 0.07750661   0</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Time used:
-    Pre = 0.838, Running = 1.78, Post = 0.125, Total = 2.75 
+    Pre = 0.774, Running = 1.6, Post = 0.11, Total = 2.48 
 Random effects:
   Name    Model
     speciesShared SPDE2 model
@@ -280,22 +280,22 @@ Random effects:
 
 Model hyperparameters:
                                         mean      sd 0.025quant 0.5quant
-Range for speciesShared                86.58  13.507     63.964    85.24
+Range for speciesShared                86.57  13.506     63.962    85.24
 Stdev for speciesShared                 1.09   0.087      0.938     1.09
-Precision for Species_name_intercepts 181.23 125.366     48.487   148.22
+Precision for Species_name_intercepts 180.50 123.258     49.031   148.22
                                       0.975quant   mode
-Range for speciesShared                   116.99  82.09
+Range for speciesShared                   116.98  82.09
 Stdev for speciesShared                     1.28   1.08
-Precision for Species_name_intercepts     513.60 102.51
+Precision for Species_name_intercepts     507.04 103.20
 
-Deviance Information Criterion (DIC) ...............: -95628.02
+Deviance Information Criterion (DIC) ...............: -95628.03
 Deviance Information Criterion (DIC, saturated) ....: NA
-Effective number of parameters .....................: -106834.99
+Effective number of parameters .....................: -106835.00
 
-Watanabe-Akaike information criterion (WAIC) ...: 30771.88
-Effective number of parameters .................: 9388.34
+Watanabe-Akaike information criterion (WAIC) ...: 30771.76
+Effective number of parameters .................: 9388.28
 
-Marginal log-Likelihood:  -59399.12 
+Marginal log-Likelihood:  -59399.13 
  is computed 
 Posterior summaries for the linear predictor and the fitted values are computed
 (Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
@@ -443,13 +443,13 @@ Summary of the fixed effects for the species:
 
 Summary for Setophaga_caerulescens:
                                                 mean         sd  0.025quant
-Setophaga_caerulescens_elevation         0.605950810 0.05151981  0.50497384
-Setophaga_caerulescens_canopy            0.426590835 0.04156729  0.34512044
-Setophaga_caerulescens_random_intercept -0.002342825 0.03404065 -0.06906126
+Setophaga_caerulescens_elevation         0.606325688 0.05149611  0.50539517
+Setophaga_caerulescens_canopy            0.424485483 0.04146223  0.34322100
+Setophaga_caerulescens_random_intercept -0.001677883 0.02939883 -0.05929854
                                             0.5quant 0.975quant         mode
-Setophaga_caerulescens_elevation         0.605950810 0.70692778  0.605950810
-Setophaga_caerulescens_canopy            0.426590835 0.50806123  0.426590835
-Setophaga_caerulescens_random_intercept -0.002342825 0.06437562 -0.002342825
+Setophaga_caerulescens_elevation         0.606325688 0.70725621  0.606325688
+Setophaga_caerulescens_canopy            0.424485483 0.50574997  0.424485483
+Setophaga_caerulescens_random_intercept -0.001677883 0.05594277 -0.001677883
                                         kld
 Setophaga_caerulescens_elevation          0
 Setophaga_caerulescens_canopy             0
@@ -457,40 +457,40 @@ Setophaga_caerulescens_random_intercept   0
 
 Summary for Setophaga_magnolia:
                                             mean         sd  0.025quant
-Setophaga_magnolia_elevation        -0.205099565 0.05902498 -0.32078639
-Setophaga_magnolia_canopy            0.054554961 0.03345257 -0.01101088
-Setophaga_magnolia_random_intercept  0.002343021 0.03404065 -0.06437542
+Setophaga_magnolia_elevation        -0.203927669 0.05896734 -0.31950154
+Setophaga_magnolia_canopy            0.054859718 0.03338982 -0.01058312
+Setophaga_magnolia_random_intercept  0.001678079 0.02939883 -0.05594257
                                         0.5quant  0.975quant         mode kld
-Setophaga_magnolia_elevation        -0.205099565 -0.08941274 -0.205099565   0
-Setophaga_magnolia_canopy            0.054554961  0.12012080  0.054554961   0
-Setophaga_magnolia_random_intercept  0.002343021  0.06906146  0.002343021   0</code></pre>
+Setophaga_magnolia_elevation        -0.203927669 -0.08835380 -0.203927669   0
+Setophaga_magnolia_canopy            0.054859718  0.12030255  0.054859718   0
+Setophaga_magnolia_random_intercept  0.001678079  0.05929873  0.001678079   0</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Time used:
-    Pre = 0.855, Running = 2.72, Post = 0.139, Total = 3.72 
+    Pre = 0.664, Running = 2.18, Post = 0.107, Total = 2.95 
 Random effects:
   Name    Model
     speciesShared SPDE2 model
    Species_name_intercepts IID model
 
 Model hyperparameters:
-                                          mean       sd 0.025quant 0.5quant
-Range for speciesShared                  87.16 1.00e+01      70.32    86.22
-Stdev for speciesShared                   1.15 6.70e-02       1.02     1.15
-Precision for Species_name_intercepts 12163.88 1.19e+05      45.26   958.74
-                                      0.975quant  mode
-Range for speciesShared                   109.57 83.52
-Stdev for speciesShared                     1.29  1.14
-Precision for Species_name_intercepts   77679.82 89.60
+                                        mean     sd 0.025quant 0.5quant
+Range for speciesShared                87.34  10.00      69.69    86.64
+Stdev for speciesShared                 1.15   0.07       1.02     1.15
+Precision for Species_name_intercepts 904.35 978.04     131.21   615.56
+                                      0.975quant   mode
+Range for speciesShared                   109.00  85.02
+Stdev for speciesShared                     1.30   1.14
+Precision for Species_name_intercepts    3468.88 315.38
 
-Deviance Information Criterion (DIC) ...............: -97460.79
+Deviance Information Criterion (DIC) ...............: -97462.29
 Deviance Information Criterion (DIC, saturated) ....: NA
-Effective number of parameters .....................: -107496.88
+Effective number of parameters .....................: -107498.58
 
-Watanabe-Akaike information criterion (WAIC) ...: 32375.98
-Effective number of parameters .................: 10469.46
+Watanabe-Akaike information criterion (WAIC) ...: 32357.71
+Effective number of parameters .................: 10459.77
 
-Marginal log-Likelihood:  -59380.29 
+Marginal log-Likelihood:  -59381.02 
  is computed 
 Posterior summaries for the linear predictor and the fitted values are computed
 (Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
@@ -570,27 +570,27 @@ Summary of the fixed effects for the species:
 
 Summary for Setophaga_caerulescens:
                                               mean         sd 0.025quant
-Setophaga_caerulescens_elevation         0.7587001 0.04849049  0.6636605
-Setophaga_caerulescens_canopy            0.6079950 0.04435721  0.5210565
-Setophaga_caerulescens_random_intercept -0.8122173 0.04153825 -0.8936308
+Setophaga_caerulescens_elevation         0.7577492 0.04847072  0.6627484
+Setophaga_caerulescens_canopy            0.6067740 0.04431799  0.5199124
+Setophaga_caerulescens_random_intercept -0.8106756 0.04151138 -0.8920364
                                           0.5quant 0.975quant       mode kld
-Setophaga_caerulescens_elevation         0.7587001  0.8537397  0.7587001   0
-Setophaga_caerulescens_canopy            0.6079950  0.6949335  0.6079950   0
-Setophaga_caerulescens_random_intercept -0.8122173 -0.7308039 -0.8122173   0
+Setophaga_caerulescens_elevation         0.7577492  0.8527501  0.7577492   0
+Setophaga_caerulescens_canopy            0.6067740  0.6936357  0.6067740   0
+Setophaga_caerulescens_random_intercept -0.8106756 -0.7293148 -0.8106756   0
 
 Summary for Setophaga_magnolia:
-                                          mean         sd 0.025quant   0.5quant
-Setophaga_magnolia_elevation        -0.1621335 0.04300120 -0.2464143 -0.1621335
-Setophaga_magnolia_canopy           -0.0767736 0.03446156 -0.1443170 -0.0767736
-Setophaga_magnolia_random_intercept  0.8122172 0.04153825  0.7308037  0.8122172
-                                      0.975quant       mode kld
-Setophaga_magnolia_elevation        -0.077852662 -0.1621335   0
-Setophaga_magnolia_canopy           -0.009230175 -0.0767736   0
-Setophaga_magnolia_random_intercept  0.893630640  0.8122172   0</code></pre>
+                                           mean         sd 0.025quant
+Setophaga_magnolia_elevation        -0.16202197 0.04299456 -0.2462898
+Setophaga_magnolia_canopy           -0.07654647 0.03444367 -0.1440548
+Setophaga_magnolia_random_intercept  0.81067544 0.04151138  0.7293146
+                                       0.5quant   0.975quant        mode kld
+Setophaga_magnolia_elevation        -0.16202197 -0.077754182 -0.16202197   0
+Setophaga_magnolia_canopy           -0.07654647 -0.009038109 -0.07654647   0
+Setophaga_magnolia_random_intercept  0.81067544  0.892036256  0.81067544   0</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Time used:
-    Pre = 1.12, Running = 8.93, Post = 0.229, Total = 10.3 
+    Pre = 1.01, Running = 7.91, Post = 0.201, Total = 9.13 
 Random effects:
   Name    Model
     Setophaga_caerulescens_eBird_spatial SPDE2 model
@@ -603,34 +603,34 @@ Random effects:
 
 Model hyperparameters:
                                                  mean     sd 0.025quant
-Range for Setophaga_caerulescens_eBird_spatial 99.734 14.743     74.724
-Stdev for Setophaga_caerulescens_eBird_spatial  1.481  0.132      1.244
-Precision for Species_name_intercepts          11.431  5.455      4.150
-Range for Setophaga_magnolia_eBird_spatial     55.188  9.339     39.181
-Stdev for Setophaga_magnolia_eBird_spatial      1.035  0.066      0.911
-Beta for Setophaga_caerulescens_BBA_spatial     0.004  0.047     -0.089
+Range for Setophaga_caerulescens_eBird_spatial 99.653 14.589     74.606
+Stdev for Setophaga_caerulescens_eBird_spatial  1.479  0.131      1.242
+Precision for Species_name_intercepts          11.335  5.083      4.273
+Range for Setophaga_magnolia_eBird_spatial     55.323  9.309     39.433
+Stdev for Setophaga_magnolia_eBird_spatial      1.035  0.067      0.913
+Beta for Setophaga_caerulescens_BBA_spatial     0.003  0.047     -0.089
 Beta for Setophaga_magnolia_BBA_spatial         0.051  0.062     -0.072
-Beta for Setophaga_magnolia_BBS_spatial         0.407  0.084      0.243
+Beta for Setophaga_magnolia_BBS_spatial         0.406  0.084      0.242
 Beta for Setophaga_caerulescens_BBS_spatial     0.861  0.056      0.752
                                                0.5quant 0.975quant   mode
-Range for Setophaga_caerulescens_eBird_spatial   98.382    132.628 95.220
-Stdev for Setophaga_caerulescens_eBird_spatial    1.473      1.762  1.455
-Precision for Species_name_intercepts            10.337     25.093  8.428
-Range for Setophaga_magnolia_eBird_spatial       54.384     75.843 52.760
-Stdev for Setophaga_magnolia_eBird_spatial        1.033      1.173  1.027
+Range for Setophaga_caerulescens_eBird_spatial   98.409    131.921 95.624
+Stdev for Setophaga_caerulescens_eBird_spatial    1.472      1.758  1.454
+Precision for Species_name_intercepts            10.393     23.851  8.686
+Range for Setophaga_magnolia_eBird_spatial       54.499     75.980 52.796
+Stdev for Setophaga_magnolia_eBird_spatial        1.032      1.176  1.024
 Beta for Setophaga_caerulescens_BBA_spatial       0.003      0.096  0.003
-Beta for Setophaga_magnolia_BBA_spatial           0.051      0.173  0.052
-Beta for Setophaga_magnolia_BBS_spatial           0.406      0.574  0.403
+Beta for Setophaga_magnolia_BBA_spatial           0.051      0.172  0.052
+Beta for Setophaga_magnolia_BBS_spatial           0.406      0.573  0.404
 Beta for Setophaga_caerulescens_BBS_spatial       0.861      0.971  0.860
 
-Deviance Information Criterion (DIC) ...............: -99195.77
+Deviance Information Criterion (DIC) ...............: -99199.74
 Deviance Information Criterion (DIC, saturated) ....: NA
-Effective number of parameters .....................: -108143.31
+Effective number of parameters .....................: -108145.31
 
-Watanabe-Akaike information criterion (WAIC) ...: 33571.44
-Effective number of parameters .................: 10972.78
+Watanabe-Akaike information criterion (WAIC) ...: 33549.69
+Effective number of parameters .................: 10962.60
 
-Marginal log-Likelihood:  -59212.37 
+Marginal log-Likelihood:  -59212.43 
  is computed 
 Posterior summaries for the linear predictor and the fitted values are computed
 (Posterior marginals needs also 'control.compute=list(return.marginals.predictor=TRUE)')</code></pre>
@@ -677,7 +677,7 @@ Posterior summaries for the linear predictor and the fitted values are computed
         param = c(0.1, 0.1)))) + eBird_intercept(1, mean.linear = 0, 
     prec.linear = 0.1) + BBA_intercept(1, mean.linear = 0, prec.linear = 0.1) + 
     BBS_intercept(1, mean.linear = 0, prec.linear = 0.1)
-&lt;environment: 0x00000200c8156c80&gt;</code></pre>
+&lt;environment: 0x000002e4c7586b38&gt;</code></pre>
 </div>
 </div>
 <p>Now, we can remove any components that we don’t want to include in the model – in this case the effect of canopy cover on on <em>Setophaga magnolia</em>, which we can see from above has been named <code>Setophaga_magnolia_canopy()</code>. We can remove this component by defining it as the <code>removeComponent</code> argument in <code>$changeComponents()</code> as follows:</p>
@@ -695,7 +695,7 @@ Posterior summaries for the linear predictor and the fitted values are computed
         param = c(0.1, 0.1)))) + eBird_intercept(1, mean.linear = 0, 
     prec.linear = 0.1) + BBA_intercept(1, mean.linear = 0, prec.linear = 0.1) + 
     BBS_intercept(1, mean.linear = 0, prec.linear = 0.1)
-&lt;environment: 0x00000200c7567ca8&gt;</code></pre>
+&lt;environment: 0x000002e4c957ca50&gt;</code></pre>
 </div>
 </div>
 <p>You should see above that the <code>Setophaga_magnolia_canopy</code> component has been removed from the model.</p>
@@ -707,11 +707,11 @@ speciesSpecCovEst &lt;- fitISDM(data = speciesSpecCovModel,
 # Examine the results
 summary(speciesSpecCovEst)</code></pre>
 <p>Pay particular attention to the coefficients for the canopy cover. You should see effects for <em>S. caerulescens</em> but not for <em>S. magnoli</em>.</p>
-<p>This approach allows us to incorporate species-specific ecological knowledge into our multi-species model, potentially improving its biological realism and predictive power while reducing overfitting by leveraging prior knowledge.</p>
+<p>This approach allows us to incorporate species-specific ecological knowledge into our multispecies model, potentially improving its biological realism and predictive power while reducing overfitting by leveraging prior knowledge.</p>
 </section>
 <section id="bias-correction" class="level1">
 <h1>Bias Correction</h1>
-<p>As in the previous vignette, we can estimate a bias field for datasets that may have significant bias such as eBird. The estimation of this should be significantly better in the multi-species model compared to the independent models as we are leveraging observations across species to estimate a common bias field. As before, the dataset bias field can be specified using the <code>$addBias()</code> slot function.</p>
+<p>As in the previous vignette, we can estimate a bias field for datasets that may have significant bias such as eBird. The estimation of this should be significantly better in the multispecies model compared to the independent models as we are leveraging observations across species to estimate a common bias field. As before, the dataset bias field can be specified using the <code>$addBias()</code> slot function.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add bias field to eBird data</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>speciesModelReplicate<span class="sc">$</span><span class="fu">addBias</span>(<span class="at">datasetNames =</span> <span class="st">'eBird'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -727,9 +727,9 @@ summary(speciesSpecCovEst)</code></pre>
 <span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Make predictions</span></span>
 <span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>BiaspredSpatial <span class="ot">&lt;-</span> <span class="fu">predict</span>(biasEst,</span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>                     <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>                     <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>                           <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>                           <span class="at">spatial =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>                           <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
 <span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare predictions</span></span>
 <span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(speciesReplicatePredSpat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -754,9 +754,9 @@ summary(speciesSpecCovEst)</code></pre>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># predict just the bias field</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>biasPredBias <span class="ot">&lt;-</span> <span class="fu">predict</span>(biasEst,</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">bias =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>                      <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">bias =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
 <span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="co"># generate map of the estimated eBird dataset bias</span></span>
 <span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>plot_eBird_bias <span class="ot">&lt;-</span> <span class="fu">plot</span>(biasPredBias) <span class="sc">+</span> </span>
 <span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Prediction of mean for</span><span class="sc">\n</span><span class="st">eBird_biasField bias field"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -808,7 +808,7 @@ log-2.718282 transformation introduced infinite values.</code></pre>
 </section>
 <section id="supplementary-activities" class="level1">
 <h1>Supplementary activities</h1>
-<p>In this workshop, we’ve explored various ways of specifying multi-species models, sharing different parts of the spatial field or covariates, estimating sampling biases, and generating different predictions maps. The following supplementary activities explore some of these themes in greater depth.</p>
+<p>In this workshop, we’ve explored various ways of specifying multispecies models, sharing different parts of the spatial field or covariates, estimating sampling biases, and generating different predictions maps. The following supplementary activities explore some of these themes in greater depth.</p>
 <section id="compare-models-predict-distribution" class="level2">
 <h2 class="anchored" data-anchor-id="compare-models-predict-distribution">Compare models Predict distribution</h2>
 <p>Given the many ways of specifying models for the same data, we may need to test competing models to identify the most parsimonious ones. This can be done using the model deviance information criterion (<strong>DIC</strong>). DIC is often preferred over Akaike information criterion (AIC) in Bayesian hierarchical models as it also accounts for the posterior distribution of the parameters. Similar to AIC, lower values are better – the common rule of thumb that a difference (<span class="math inline">\(\delta\)</span>DIC) of &lt;2 is considered indicating minimal evidence that the model with lower DIC is better, <span class="math inline">\(\delta\)</span>DIC 2-5 suggests moderate evidence, and <span class="math inline">\(\delta\)</span>DIC &gt;5 is considered substantial evidence. We can extract a fitted model’s DIC as follows:</p>
@@ -816,11 +816,11 @@ log-2.718282 transformation introduced infinite values.</code></pre>
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare models</span></span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>speciesSharedEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -95628.02</code></pre>
+<pre><code>[1] -95628.03</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>speciesReplicateEst<span class="sc">$</span>dic<span class="sc">$</span>dic</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -97460.79</code></pre>
+<pre><code>[1] -97462.28</code></pre>
 </div>
 </div>
 <p>Importantly, we can only compare DIC values for models with the same observation data and the same mesh.</p>
@@ -831,11 +831,11 @@ log-2.718282 transformation introduced infinite values.</code></pre>
 <p>In the <strong>Examining Species-Specific Responses</strong> section of the <strong>Shared spatial effect</strong> model, we predicted and mapped the combined covariate effects by specifying all the covariates for the argument <code>covariates = speciesSharedEst$spatCovs$name</code>. If we define the <code>covariates</code> argument as any subset of the used spatial covariates, we can explore any specific covariates effects separately as desired. Can you modify the following code to predict effect of one of the covariates in one of the models?</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>fittedModel <span class="ot">&lt;-</span> ???</span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>modelPred <span class="ot">&lt;-</span> <span class="fu">predict</span>(fittedModel,</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">spatial =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">covariates =</span> ???,</span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  modelPred <span class="ot">&lt;-</span> <span class="fu">predict</span>(fittedModel,</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">data =</span> <span class="fu">fm_pixels</span>(<span class="at">mesh =</span> mesh, <span class="at">mask =</span> PA),</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">spatial =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">covariates =</span> ???,</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">n.samples =</span> <span class="dv">100</span>)</span>
 <span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(modelPred, <span class="at">variable =</span> <span class="fu">c</span>(<span class="st">'mean'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
@@ -931,13 +931,13 @@ log-2.718282 transformation introduced infinite values.</code></pre>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>{</span>
 <span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Plot observed &amp; interpolated elevation</span></span>
 <span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  p1obs <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_spatraster</span>(<span class="at">data =</span> covs<span class="sc">$</span>elevation) <span class="sc">+</span> </span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Observed Elevation"</span>)</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Observed Elevation"</span>)</span>
 <span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  p1int <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(interpolated_df) <span class="sc">+</span></span>
 <span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> elevation)) <span class="sc">+</span></span>
 <span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Interpolated Elevation"</span>, <span class="at">fill =</span> <span class="st">"Elevation"</span>)</span>
 <span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Plot observed &amp; interpolated canopy </span></span>
 <span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  p2obs <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_spatraster</span>(<span class="at">data =</span> covs<span class="sc">$</span>canopy) <span class="sc">+</span> </span>
-<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Observed Canopy"</span>)</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Observed Canopy"</span>)</span>
 <span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>  p2int <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(interpolated_df) <span class="sc">+</span></span>
 <span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> canopy)) <span class="sc">+</span></span>
 <span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Interpolated Canopy"</span>, <span class="at">fill =</span> <span class="st">"Canopy"</span>)</span>
