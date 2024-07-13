@@ -46,3 +46,7 @@ install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-dow
 11:10-12:20: Third presentation
 
 12:20-12:25: Break
+
+12:25-12:45: Fourth presentation
+
+12:45-13:00: Wrapping up.
