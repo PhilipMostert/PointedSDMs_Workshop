@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Bob O’Hara">
-<meta name="dcterms.date" content="2024-07-10">
+<meta name="dcterms.date" content="2024-07-13">
 
 <title>SetophagaExercise</title>
 <style>
@@ -118,7 +118,7 @@ div.csl-indent {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 10, 2024</p>
+      <p class="date">July 13, 2024</p>
     </div>
   </div>
   
@@ -239,7 +239,7 @@ div.csl-indent {
 </div>
 </div>
 </div>
-<p>Our coarse mesh is OK, and has 227 points in it. We also have a big mesh with 20596 points, which takes longer to run but produces better results. We would suggest you wait until after the workshop to try it (it only takes a few minutes, but will be annoying if we start another exercise whilst you’re waiting.</p>
+<p>Our coarse mesh is OK, and has 227 points in it. We also have a big mesh with 20608 points, which takes longer to run but produces better results. We would suggest you wait until after the workshop to try it (it only takes a few minutes, but will be annoying if we start another exercise whilst you’re waiting.</p>
 </section>
 <section id="integrating-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="integrating-the-data">Integrating the data</h2>
@@ -306,8 +306,8 @@ div.csl-indent {
 <div class="cell-output cell-output-stdout">
 <pre><code>Summary of 'modISDM' object:
 
-inlabru version: 2.10.1
-INLA version: 24.06.27
+inlabru version: 2.11.1
+INLA version: 24.06.04
 
 Types of data modelled:
                                     
@@ -317,11 +317,11 @@ BBS                  Present absence</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                  mean    sd 0.025quant 0.5quant 0.975quant   mode kld
-ebird_intercept -4.832 0.183     -5.191   -4.832     -4.474 -4.832   0
+ebird_intercept -4.833 0.183     -5.191   -4.833     -4.474 -4.833   0
 BBA_intercept   -1.866 0.087     -2.036   -1.866     -1.696 -1.866   0
 BBS_intercept   -2.938 0.127     -3.187   -2.938     -2.690 -2.938   0
-elevation        0.879 0.055      0.773    0.879      0.986  0.879   0
-canopy           0.777 0.048      0.682    0.777      0.871  0.777   0</code></pre>
+elevation        0.879 0.055      0.772    0.879      0.986  0.879   0
+canopy           0.776 0.048      0.682    0.776      0.871  0.776   0</code></pre>
 </div>
 </div>
 <p>The prior here is ridiculously tight, but we can see that it does affect the posterior.</p>
@@ -331,7 +331,7 @@ canopy           0.777 0.048      0.682    0.777      0.871  0.777   0</code></p
 <h2 class="anchored" data-anchor-id="formula">Formula</h2>
 <p>We can also update the formula, to change the model. For example, here we add a quadratic effect of elevation.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">updateFormula</span>(???, </span>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>caerulescensModel<span class="sc">$</span><span class="fu">updateFormula</span>(<span class="at">processLevel=</span><span class="cn">TRUE</span>, </span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> <span class="sc">~</span> . <span class="sc">+</span> <span class="fu">I</span>(elevation<span class="sc">^</span><span class="dv">2</span>))</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>caerulescensEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
@@ -368,8 +368,8 @@ canopy           0.777 0.048      0.682    0.777      0.871  0.777   0</code></p
 <div class="cell-output cell-output-stdout">
 <pre><code>Summary of 'modISDM' object:
 
-inlabru version: 2.10.1
-INLA version: 24.06.27
+inlabru version: 2.11.1
+INLA version: 24.06.04
 
 Types of data modelled:
                                     
@@ -379,12 +379,12 @@ BBS                  Present absence</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                            mean    sd 0.025quant 0.5quant 0.975quant   mode
-Range for ebird_spatial   33.962 8.570     19.364   33.197     52.816 32.001
-Stdev for ebird_spatial    1.312 0.176      0.996    1.301      1.689  1.281
-Range for ebird_biasField 59.073 6.791     46.837   58.687     73.537 57.920
-Stdev for ebird_biasField  1.948 0.149      1.672    1.941      2.261  1.927
-Beta for BBA_spatial       0.381 0.080      0.226    0.380      0.542  0.377
-Beta for BBS_spatial       1.530 0.164      1.222    1.526      1.868  1.504</code></pre>
+Range for ebird_spatial   33.938 8.630     19.434   33.104     53.144 31.720
+Stdev for ebird_spatial    1.313 0.180      0.993    1.301      1.700  1.279
+Range for ebird_biasField 59.081 6.793     46.843   58.694     73.552 57.923
+Stdev for ebird_biasField  1.950 0.150      1.674    1.944      2.263  1.930
+Beta for BBA_spatial       0.383 0.081      0.225    0.382      0.544  0.379
+Beta for BBS_spatial       1.531 0.166      1.217    1.528      1.868  1.512</code></pre>
 </div>
 </div>
 <p>If we want to model the observation process for a data set, we can do that by changing the formula for the dataset. For example, we might think that birders in Pennsylvania don’t like heights (if they did, they would be in Colorado, after all), and add elevation as a covariate. We also need to add the corresponding component using <code>.$addComponents</code> to ensure that it gets estimated.</p>
@@ -405,7 +405,7 @@ Beta for BBS_spatial       1.530 0.164      1.222    1.526      1.868  1.504</co
     model = ebird_bias_field) + Fixed__Effects__Comps(main = ~elevation + 
     canopy + elevation_ebird - 1, model = "fixed") + elevation_ebird(main = elevation, 
     model = "linear")
-&lt;environment: 0x133ffdc90&gt;</code></pre>
+&lt;environment: 0x7f96201132a8&gt;</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>caerulescensEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">options =</span> modelOptions)</span>
@@ -413,8 +413,8 @@ Beta for BBS_spatial       1.530 0.164      1.222    1.526      1.868  1.504</co
 <div class="cell-output cell-output-stdout">
 <pre><code>Summary of 'modISDM' object:
 
-inlabru version: 2.10.1
-INLA version: 24.06.27
+inlabru version: 2.11.1
+INLA version: 24.06.04
 
 Types of data modelled:
                                     
@@ -424,11 +424,11 @@ BBS                  Present absence</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                  mean    sd 0.025quant 0.5quant 0.975quant   mode kld
-ebird_intercept -4.571 0.229     -5.019   -4.571     -4.123 -4.571   0
-BBA_intercept   -3.839 0.134     -4.102   -3.839     -3.575 -3.839   0
-BBS_intercept   -3.303 0.235     -3.765   -3.303     -2.842 -3.303   0
+ebird_intercept -4.571 0.229     -5.019   -4.571     -4.122 -4.571   0
+BBA_intercept   -3.837 0.134     -4.101   -3.837     -3.574 -3.837   0
+BBS_intercept   -3.301 0.236     -3.763   -3.301     -2.840 -3.301   0
 elevation        0.791 2.225     -3.570    0.791      5.153  0.791   0
-canopy           2.185 0.083      2.023    2.185      2.347  2.185   0
+canopy           2.184 0.083      2.022    2.184      2.346  2.184   0
 elevation_ebird  0.791 2.225     -3.570    0.791      5.153  0.791   0</code></pre>
 </div>
 </div>
@@ -518,13 +518,13 @@ mean DIC score: -32864.14</code></pre>
 <pre><code>Changes in fixed values by leaving out BBA:
 
                       mean         sd 0.025quant   0.5quant 0.975quant
-ebird_intercept  0.4540515  0.8291217 -1.1709972  0.4540515   2.079100
-BBS_intercept   -0.7359376 -0.1352846 -0.4707847 -0.7359376  -1.001091
-                      mode           kld
-ebird_intercept  0.4540515  1.888453e-16
-BBS_intercept   -0.7359376 -1.683038e-15
+ebird_intercept  0.4705350  4.1063384 -7.5777404  0.4705350  8.5188105
+BBS_intercept   -0.6287843 -0.1389561 -0.3564355 -0.6287843 -0.9011332
+                      mode kld
+ebird_intercept  0.4705350   0
+BBS_intercept   -0.6287843   0
 
-Leave-one-out cross-validation score: -141.0015</code></pre>
+Leave-one-out cross-validation score: -141.0466</code></pre>
 </div>
 </div>
 <p>Note that this is not stable, thanks to the mesh.</p>
@@ -602,7 +602,7 @@ Leave-one-out cross-validation score: -141.0015</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Well, are they?</summary>
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">updateFormula</span>(???, </span>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>magnoliaModel<span class="sc">$</span><span class="fu">updateFormula</span>(<span class="at">processLevel=</span><span class="cn">TRUE</span>, </span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">Formula =</span> . <span class="sc">~</span> . <span class="sc">+</span> <span class="fu">I</span>(elevation<span class="sc">^</span><span class="dv">2</span>))</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>magnoliaEst <span class="ot">&lt;-</span> <span class="fu">fitISDM</span>(<span class="at">data =</span> caerulescensModel, </span>
@@ -638,24 +638,24 @@ Leave-one-out cross-validation score: -141.0015</code></pre>
 <span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept</span></span>
 <span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
 <span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      2981.689 -48110.30 -45128.61</span></span>
-<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      3760.890 -42180.02 -38419.13</span></span>
-<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      3915.457 -39897.50 -35982.04</span></span>
-<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4267.111 -39662.98 -35395.87</span></span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      2981.633 -48110.44 -45128.80</span></span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      3760.324 -42180.68 -38420.36</span></span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      3915.404 -39897.56 -35982.16</span></span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4266.897 -39663.01 -35396.11</span></span>
 <span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -38731.41</span></span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -38731.86</span></span>
 <span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a>magnoliaBlockedBias</span>
 <span id="cb34-30"><a href="#cb34-30" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
 <span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
 <span id="cb34-32"><a href="#cb34-32" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept + ebird_biasField</span></span>
 <span id="cb34-33"><a href="#cb34-33" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
 <span id="cb34-34"><a href="#cb34-34" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      2981.452 -48109.79 -45128.33</span></span>
-<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      3751.117 -42175.75 -38424.63</span></span>
-<span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      3917.379 -39868.03 -35950.65</span></span>
-<span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4231.019 -39601.04 -35370.03</span></span>
+<span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      2980.960 -48110.47 -45129.51</span></span>
+<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      3735.961 -42124.22 -38388.26</span></span>
+<span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      3906.650 -39857.57 -35950.92</span></span>
+<span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      4267.555 -39619.33 -35351.77</span></span>
 <span id="cb34-39"><a href="#cb34-39" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -38718.41</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -38705.12</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell">
@@ -683,24 +683,24 @@ Leave-one-out cross-validation score: -141.0015</code></pre>
 <span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept</span></span>
 <span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
 <span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      4084.616 -26587.23 -22502.61</span></span>
-<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      4564.772 -29409.09 -24844.32</span></span>
-<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4330.338 -23661.76 -19331.42</span></span>
-<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      3594.437 -27235.25 -23640.81</span></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      4084.429 -26587.46 -22503.03</span></span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      4564.852 -29409.16 -24844.31</span></span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4330.471 -23661.71 -19331.24</span></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      3594.390 -27235.49 -23641.10</span></span>
 <span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -22579.79</span></span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -22579.92</span></span>
 <span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a>fuscaBlockedBias</span>
 <span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a><span class="do">## Spatial block cross-validation score:</span></span>
 <span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
 <span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a><span class="do">## Formula: ~ebird_spatial + BBA_spatial + BBS_spatial + elevation + canopy + elevation_ebird + ebird_intercept + BBA_intercept + BBS_intercept + ebird_biasField</span></span>
 <span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
 <span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a><span class="do">##        mean.deviance     p.eff       dic</span></span>
-<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      4019.780 -26525.35 -22505.57</span></span>
-<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      4354.808 -29320.65 -24965.84</span></span>
-<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4170.252 -23622.38 -19452.13</span></span>
-<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      3463.151 -27137.96 -23674.81</span></span>
+<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 1      4018.428 -26523.97 -22505.54</span></span>
+<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 2      4354.900 -29320.60 -24965.70</span></span>
+<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 3      4170.165 -23622.64 -19452.47</span></span>
+<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a><span class="do">## fold 4      3463.209 -27137.95 -23674.74</span></span>
 <span id="cb35-39"><a href="#cb35-39" aria-hidden="true" tabindex="-1"></a><span class="do">## </span></span>
-<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -22649.59</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a><span class="do">## mean DIC score: -22649.62</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <details>

@@ -25,3 +25,24 @@ install.packages('PointedSDMs')
 devtools::install_github('PhilipMostert/PointedSDMs@main')
 
 ```
+
+You will also need INLA, which you can install from [here](https://www.r-inla.org/download-install), which recommends using this code:
+
+
+```{r InstallINLA, eval=FALSE}
+install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+```
+
+# Approximate timings
+
+10:00 - 10:20: Introduction & first presentation
+
+10:20 - 11.05: First exercise (most time taken installing pkg & INLA)
+
+11:05 - 11:40: Second presentaiton, but had a LOT of questions
+
+11:40-12:10: Second exercise
+
+11:10-12:20: Third presentation
+
+12:20-12:25: Break

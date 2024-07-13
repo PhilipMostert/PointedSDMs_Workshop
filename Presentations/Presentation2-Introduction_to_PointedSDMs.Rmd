@@ -237,8 +237,6 @@ plot(caerulescensPredictions, variable = c('mean', 'sd'))
 
 -   Questions and discussions.
 
--   Pull *Github* repository: *PhilipMostert/PointedSDMs_Workshop.*
-
 -   We will through *Vignette 2: Basic model* together.
 
 ## References

@@ -220,7 +220,7 @@ We can also update the formula, to change the model. For example, here we add a 
 ```{r FormulaProcess}
 #| eval: false
 
-caerulescensModel$updateFormula(???, 
+caerulescensModel$updateFormula(processLevel=TRUE, 
                               Formula = ~ . + I(elevation^2))
 
 caerulescensEst <- fitISDM(data = caerulescensModel, 
@@ -305,8 +305,9 @@ spatialBlocked
 
 More so, we can compare the cross-validation score from this model to one without the shared spatial effect (specified with `pointsSpatial = FALSE` in `startISDM`).
 
-```{r No fields model, message = FALSE, warning = FALSE}
-
+```{r No fields model}
+#| message = FALSE
+#| warning = FALSE
 caerulescens_no_fields <- startISDM(SetohagaData$Setophaga_caerulescens, 
                           pointsSpatial = NULL, #no spatial effect
                           Boundary = PA, # a polygon of the boundary
@@ -420,7 +421,7 @@ fuscaModel$spatialBlock(k = 4, rows_cols = c(4, 2), hexagon = FALSE,
 #| code-summary: Well, are they?
 #| collapse: true
 
-magnoliaModel$updateFormula(???, 
+magnoliaModel$updateFormula(processLevel=TRUE, 
                               Formula = . ~ . + I(elevation^2))
 
 magnoliaEst <- fitISDM(data = caerulescensModel, 
