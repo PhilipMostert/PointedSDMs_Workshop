@@ -1,10 +1,11 @@
 ---
-title: "Intro to ISDMs"
-author: "Bob O'Hara"
-institute: 'Norwegian University of Science and Technology'
+title: "PointedSDMs Workshop"
+author: "Philip Mostert, Ron Tugonov, Kwaku Adjei, Bob O'Hara"
+institute: 'ISEC 2024, Swansea, Wales'
 date: '13 July 2024'
 format: revealjs
 ---
+
 
 ## Who We Are
 
@@ -28,6 +29,11 @@ format: revealjs
 ::: {.column width="25%"}
 ![Ron Togonov](Images/RonT.jpg)
 :::
+
+# Presentation 1: What are ISDMs?
+
+:::
+
 
 ::::
 
