@@ -1,35 +1,11 @@
 ---
-title: "Intro to ISDMs"
-author: "Bob O'Hara"
-institute: 'Norwegian University of Science and Technology'
+title: "PointedSDMs Workshop"
+author: "Philip Mostert, Ron Tugonov, Kwaku Adjei, Bob O'Hara"
+institute: 'ISEC 2024, Swansea, Wales'
 date: '13 July 2024'
 format: revealjs
 ---
 
-## Who We Are
-
-:::: {.columns}
-
-::: {.column width="25%"}
-![Bob O'Hara](Images/BobOH.jpg)
-
-:::
-
-::: {.column width="25%"}
-
-![Philip Mostert](Images/Philip.jpg)
-:::
-
-::: {.column width="25%"}
-
-![Kwaku Adjei](Images/Kwaku.jpg)
-:::
-
-::: {.column width="25%"}
-![Ron Togonov](Images/RonT.jpg)
-:::
-
-::::
 
 # Why Integrate Data?
 
@@ -99,5 +75,16 @@ Actual number follows a Poisson distribution with mean $\mu_A$
 
 # Exercise 1: Your first (and second?) model
 
+First: pull from the  *Github* repository: *https://github.com/PhilipMostert/PointedSDMs*
 
+devtools::install_github('PhilipMostert/PointedSDMs@main')
+
+(this is more recent than CRAN)
+
+Then pull the workshop: *PhilipMostert/PointedSDMs_Workshop.*
+
+
+The first exercise is here:
+
+*https://github.com/PhilipMostert/PointedSDMs_Workshop/blob/main/Exercises/SetophagaExercise1.html*
 

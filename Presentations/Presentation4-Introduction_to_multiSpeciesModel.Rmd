@@ -1,7 +1,7 @@
 ---
-title: 'Presentation 3:'
-subtitle: "Multispecies Integrated Species Distribution Modeling in *PointedSDMs*\n\n'ISEC 2024 -- Swansea'"
-author: "Ron Togunov, Philip Mostert, Bob O'Hara"
+title: 'Presentation 4:'
+subtitle: "Multispecies Integrated Species Distribution Modeling in *PointedSDMs*\n\nISEC 2024 -- Swansea"
+author: "Ron R. Togunov, Philip Mostert, Bob O'Hara"
 institute: 'Norwegian University of Science and Technology'
 date: '13 July 2024'
 output: beamer_presentation
