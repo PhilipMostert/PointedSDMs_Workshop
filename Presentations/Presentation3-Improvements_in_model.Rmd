@@ -1,6 +1,6 @@
 ---
 title: 'Presentation 3:'
-subtitle: "Improving in Warbler model\n\n'ISEC 2024 -- Swansea'"
+subtitle: "Improving in Warbler model\n\nISEC 2024 -- Swansea"
 author: "Ron R Togunov, Philip Mostert, Bob O'Hara, Kwaku Adjei"
 institute: 'Norwegian University of Science and Technology'
 date: '13 July 2024'
@@ -24,23 +24,23 @@ opts_chunk$set(tidy.opts=list(width.cutoff=20),tidy=TRUE)
 
 ## Improving the Warber model
 
-- Is there any indication that another model will be better?
+-   Is there any indication that another model will be better?
 
-- What improvements can be made?
+-   What improvements can be made?
 
 ## Better Warber Model
 
-- Split the model into ecological and observation processes
+-   Split the model into ecological and observation processes
 
-- Spatial field + covariates
+-   Spatial field + covariates
 
-- spatial field + covariates + quadratics
+-   spatial field + covariates + quadratics
 
-- Define priors for the model
+-   Define priors for the model
 
-- formula specification
+-   formula specification
 
-- Second spatial effect to account for bias
+-   Second spatial effect to account for bias
 
 ## References
 
